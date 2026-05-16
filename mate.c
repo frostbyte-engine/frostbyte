@@ -5,7 +5,7 @@ int main() {
     StartBuild();
 
     ExecutableOptions executable_options = {
-        .output = "fakeroblox",
+        .output = "frostbyte",
         .flags = "-std=c++17 -Wall -Wno-psabi -Werror -g -march=native -static-libstdc++ -static-libgcc"
     };
     Executable executable = CreateExecutable(executable_options);
@@ -32,7 +32,7 @@ int main() {
     AddIncludePaths(executable, "./dependencies/rlImGui/raylib-master/src");
     AddIncludePaths(executable, "./dependencies/rlImGui/imgui-master");
 
-    LinkSystemLibraries(executable, "m", "stdc++", "raylib");
+    LinkSystemLibraries(executable, "m", "stdc++", "raylib", "X11");
 
     AddLibraryPaths(executable, "./dependencies/Luau/cmake");
     LinkSystemLibraries(executable, "Luau");
