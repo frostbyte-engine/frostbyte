@@ -402,7 +402,7 @@ int DrawEntry__index(lua_State* L) {
     else {
         lua_CFunction func = getDrawEntryMethod(entry, key);
         if (func)
-            return pushFunctionFromLookup(L, func);
+            return pushFunctionFromLookup(L, func, key);
 
         switch (entry->type) {
             case DrawEntry::DrawTypeLine: {

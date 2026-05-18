@@ -141,7 +141,7 @@ static int Enum__index(lua_State* L) {
 
     lua_CFunction func = getEnumMethod(_enum, key);
     if (func)
-        return pushFunctionFromLookup(L, func);
+        return pushFunctionFromLookup(L, func, key);
 
     if (_enum->item_map.find(key) == _enum->item_map.end())
         luaL_error(L, "%s is not a valid member of \"Enum.%s\"", key, _enum->name.c_str());
