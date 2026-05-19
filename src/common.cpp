@@ -240,10 +240,8 @@ void* luaL_checkudatareal(lua_State* L, int ud, const char* tname) {
 
 int createweaktable(lua_State* L, int narr, int nrec) {
     lua_createtable(L, narr, nrec);
-    lua_pushvalue(L, -1);
+    lua_getfield(L, LUA_REGISTRYINDEX, "weakmetatable");
     lua_setmetatable(L, -2);
-    lua_pushstring(L, "kvs");
-    lua_setfield(L, -2, "__mode");
 
     return 1;
 }

@@ -4,6 +4,9 @@
 
 namespace frostbyte {
 
+bool runservice_is_server = false;
+bool runservice_is_studio = false;
+
 bool show_fps = false;
 bool menu_editor_open = true;
 bool menu_console_open = true;

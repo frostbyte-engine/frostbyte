@@ -6,6 +6,7 @@
 #include "console.hpp"
 #include "lua.h"
 #include "lualib.h"
+#include "ui/ui.hpp"
 
 namespace frostbyte {
 
@@ -54,11 +55,15 @@ namespace rbxInstance_RunService_methods {
     }
 
     static int isClient(lua_State* L) {
-        lua_pushboolean(L, true);
+        lua_pushboolean(L, !runservice_is_server);
         return 1;
     }
     static int isServer(lua_State* L) {
-        lua_pushboolean(L, false);
+        lua_pushboolean(L, runservice_is_server);
+        return 1;
+    }
+    static int isStudio(lua_State* L) {
+        lua_pushboolean(L, runservice_is_studio);
         return 1;
     }
 
@@ -112,7 +117,7 @@ void RunService::process(lua_State *L) {
             case LUA_ERRRUN:
             case LUA_ERRMEM:
             case LUA_ERRERR:
-                Console::ScriptConsole.errorf("RunService::fireRenderStepEarlyFunctions unexpected error while invoking callback: %s", lua_tostring(L, -1));
+                Console::ScriptConsole.errorf("RunService:fireRenderStepEarlyFunctions unexpected error while invoking callback: %s", lua_tostring(L, -1));
                 lua_pop(L, 1);
                 break;
         }
@@ -135,6 +140,7 @@ void rbxInstance_RunService_init(lua_State* L) {
     rbxClass::class_map["RunService"]->methods["BindToRenderStep"].func = rbxInstance_RunService_methods::bindToRenderStep;
     rbxClass::class_map["RunService"]->methods["IsClient"].func = rbxInstance_RunService_methods::isClient;
     rbxClass::class_map["RunService"]->methods["IsServer"].func = rbxInstance_RunService_methods::isServer;
+    rbxClass::class_map["RunService"]->methods["IsStudio"].func = rbxInstance_RunService_methods::isStudio;
     rbxClass::class_map["RunService"]->methods["UnbindFromRenderStep"].func = rbxInstance_RunService_methods::unbindFromRenderStep;
 }
 

@@ -11,6 +11,10 @@
 namespace frostbyte {
 
 // window items
+
+extern bool runservice_is_server;
+extern bool runservice_is_studio;
+
 extern bool show_fps;
 extern bool menu_editor_open;
 extern bool menu_console_open;

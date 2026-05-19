@@ -69,6 +69,11 @@ namespace rbxInstance_DataModel_methods {
 
         return 0;
     }
+    static int isLoaded(lua_State* L) {
+        lua_pushboolean(L, true);
+        return 1;
+    }
+
     static int httpGet(lua_State* L) {
         lua_checkinstance(L, 1, "DataModel");
         std::string url = luaL_checkstring(L, 2);
@@ -94,6 +99,7 @@ void rbxInstance_DataModel_init(lua_State* L) {
 
     rbxClass::class_map["DataModel"]->methods["Shutdown"].func = rbxInstance_DataModel_methods::shutdown;
     rbxClass::class_map["DataModel"]->methods["BindToClose"].func = rbxInstance_DataModel_methods::bindToClose;
+    rbxClass::class_map["DataModel"]->methods["IsLoaded"].func = rbxInstance_DataModel_methods::isLoaded;
 
     rbxClass::class_map["DataModel"]->newMethod("HttpGet", rbxInstance_DataModel_methods::httpGet);
 }

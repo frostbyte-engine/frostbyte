@@ -311,7 +311,7 @@ static int DrawEntry_getObjects(lua_State* L) {
 
     return 1;
 }
-static int DrawEntry_clear(lua_State* L) {
+int DrawEntry_clear(lua_State* L) {
     DrawEntry::clear(L);
 
     return 0;
@@ -605,7 +605,7 @@ int DrawEntry__newindex(lua_State* L) {
                         const char* str = luaL_checklstring(L, 3, &l);
                         std::string data(str, l);
                         if (!FontLoader::getFontType(reinterpret_cast<unsigned char*>(data.data()), l))
-                            luaL_error(L, "failed to detect valid type from font data; %s", FontLoader::SUPPORTED_FONT_TYPE_STRING);
+                            luaL_error(L, "failed to detect valid type from font data; %s%s", FontLoader::SUPPORTED_FONT_TYPE_STRING, l == 0 ? ", got empty string" : "");
                         entry_text->custom_font_data = data;
                         entry_text->updateCustomFont();
                     } else {

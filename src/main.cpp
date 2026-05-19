@@ -206,6 +206,11 @@ int main(int argc, char** argv) {
 
     Console::ScriptConsole.debugf("main state: %p", L);
 
+    lua_createtable(L, 0, 1);
+    lua_pushstring(L, "kvs");
+    lua_setfield(L, -2, "__mode");
+    lua_setfield(L, LUA_REGISTRYINDEX, "weakmetatable");
+
     open_frostbyte_environment(L);
 
     open_filesystemlib(L);
@@ -430,6 +435,9 @@ int main(int argc, char** argv) {
                 if (ImGui::MenuItem("enable stephook", nullptr, &enable_stephook))
                     onEnableStephookChange(appL);
 
+                ImGui::MenuItem("RunService IsServer", nullptr, &runservice_is_server);
+                ImGui::MenuItem("RunService IsStudio", nullptr, &runservice_is_studio);
+
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Window")) {
@@ -451,6 +459,7 @@ int main(int argc, char** argv) {
                 ImGui::MenuItem("Enable UserInputService", nullptr, &enable_user_input_service);
                 ImGui::MenuItem("Enable RunService", nullptr, &enable_run_service);
                 ImGui::MenuItem("Enable TweenService", nullptr, &enable_tween_service);
+
                 ImGui::MenuItem("Function Explorer", nullptr, &menu_function_explorer_open);
                 ImGui::MenuItem("Table Explorer", nullptr, &menu_table_explorer_open);
                 ImGui::MenuItem("Image Explorer", nullptr, &menu_image_explorer_open);
