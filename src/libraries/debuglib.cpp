@@ -1,11 +1,14 @@
 #include "libraries/debuglib.hpp"
+#include "Luau/Bytecode.h"
 #include "common.hpp"
 #include "environment.hpp"
 
 #include "lapi.h"
+#include "lcommon.h"
 #include "ldebug.h"
 #include "lfunc.h"
 #include "lgc.h"
+#include "lmem.h"
 #include "lobject.h"
 #include "lstring.h"
 #include "lua.h"
@@ -262,6 +265,53 @@ int fr_debug_getinfo(lua_State* L) {
     return 1;
 }
 
+Proto* cloneProto(lua_State* L, Proto* original) {
+    Proto* cloned = luaF_newproto(L);
+
+    cloned->nups = original->nups;
+    cloned->numparams = original->numparams;
+    cloned->is_vararg = original->is_vararg;
+    cloned->maxstacksize = original->maxstacksize;
+    cloned->flags = original->flags;
+
+    // FIXME: should we clone k as well?
+    // cloned->k = original->k;
+
+    if (original->sizelineinfo) {
+        cloned->sizelineinfo = original->sizelineinfo;
+        cloned->lineinfo = luaM_newarray(L, original->sizelineinfo, uint8_t, cloned->memcat);
+        memcpy(cloned->lineinfo, original->lineinfo, original->sizelineinfo * sizeof(uint8_t));
+
+        cloned->abslineinfo = (int*)(cloned->lineinfo + ((original->sizecode + 3) & ~3));
+    }
+
+    if (original->sizelocvars) {
+        cloned->sizelocvars = original->sizelocvars;
+        cloned->locvars = luaM_newarray(L, original->sizelocvars, LocVar, cloned->memcat);
+
+        cloned->sizeupvalues = original->sizeupvalues;
+        cloned->upvalues = luaM_newarray(L, original->sizeupvalues, TString*, cloned->memcat);
+
+        for (int i = 0; i < original->sizeupvalues; i++)
+            cloned->upvalues[i] = luaS_newlstr(L, getstr(original->upvalues[i]), original->upvalues[i]->len);
+    }
+
+    cloned->source = original->source;
+
+    cloned->debugname = original->debugname;
+
+    cloned->linegaplog2 = original->linegaplog2;
+    cloned->linedefined = original->linedefined;
+    cloned->bytecodeid = original->bytecodeid;
+    // cloned->sizetypeinfo = original->sizetypeinfo;
+
+    cloned->sizecode = 1;
+    cloned->code = luaM_newarray(L, 1, Instruction, cloned->memcat);
+    cloned->code[0] = Instruction(LOP_RETURN) | (1 << 16); // RETURN B1
+    cloned->codeentry = cloned->code;
+
+    return cloned;
+}
 int fr_debug_getprotos(lua_State* L) {
     Closure* closure = getClosure(L, 1);
     checkLClosure(L, 1, closure);
@@ -273,7 +323,9 @@ int fr_debug_getprotos(lua_State* L) {
     for (int i = 0; i < p->sizep; i++) {
         lua_pushnumber(L, i + 1);
 
-        Closure* lclosure = luaF_newLclosure(L, p->p[i]->nups, closure->env, p->p[i]);
+        Proto* original = p->p[i];
+
+        Closure* lclosure = luaF_newLclosure(L, original->nups, closure->env, cloneProto(L, original));
         lua_pushnil(L);
         setclvalue(L, L->top - 1, lclosure);
 
@@ -289,7 +341,12 @@ int fr_debug_getproto(lua_State* L) {
 
     int index = luaL_checknumberrange(L, 2, 1, p->sizep, "index");
 
-    Closure* lclosure = luaF_newLclosure(L, p->p[index - 1]->nups, closure->env, p->p[index - 1]);
+    if (lua_isboolean(L, 3))
+        luaL_error(L, "active is not yet implemented");
+
+    Proto* original = p->p[index - 1];
+
+    Closure* lclosure = luaF_newLclosure(L, original->nups, closure->env, cloneProto(L, original));
     lua_pushnil(L);
     setclvalue(L, L->top - 1, lclosure);
 
@@ -332,7 +389,11 @@ int fr_debug_getconstants(lua_State* L) {
 
     for (int i = 0; i < p->sizek; i++) {
         lua_pushnumber(L, i + 1);
-        luaA_pushobject(L, &p->k[i]);
+        const TValue* obj = &p->k[i];
+        if (obj->tt == LUA_TFUNCTION)
+            lua_newuserdata(L, 0);
+        else
+            luaA_pushobject(L, obj);
         lua_settable(L, table);
     }
 
@@ -348,10 +409,16 @@ int fr_debug_setconstant(lua_State* L) {
 
     int valuet = lua_type(L, 3);
     if (valuet == LUA_TNIL || valuet == LUA_TBOOLEAN || valuet == LUA_TNUMBER ||
-        valuet == LUA_TVECTOR || valuet == LUA_TSTRING || valuet == LUA_TTABLE ||
-        valuet == LUA_TFUNCTION)
+        valuet == LUA_TVECTOR || valuet == LUA_TSTRING || valuet == LUA_TTABLE)
     {
-        setobj(L, &p->k[index - 1], luaA_toobject(L, 3));
+        TValue* original = &p->k[index - 1];
+        const TValue* replacement = luaA_toobject(L, 3);
+
+        if (replacement->tt != original->tt)
+            luaL_typeerror(L, 3, lua_typename(L, original->tt));
+
+        setobj(L, original, replacement);
+        luaC_barrier(L, closure, replacement)
     } else
         luaL_error(L, "invalid argument #3 to getconstants (expected nil, boolean, number, vector, string, table, or function, got %s", lua_typename(L, valuet));
 
@@ -395,6 +462,8 @@ int fr_debug_setupvalue(lua_State* L) {
 
     int index = luaL_checknumberrange(L, 2, 1, closure->nupvalues, "index");
 
+    luaL_checkany(L, 3);
+
     lua_setupvalue(L, 1, index);
 
     return 0;
@@ -411,7 +480,9 @@ int fr_debug_upvaluejoin(lua_State* L) {
     TValue* o_1 = &closure_1->l.uprefs[n_1 - 1];
     TValue* o_2 = &closure_2->l.uprefs[n_2 - 1];
 
-    *o_1 = *o_2;
+    // FIXME: I'm not sure the idea of setobj here is correct
+    setobj(L, o_1, o_2);
+    luaC_barrier(L, closure_1, o_2);
 
     return 0;
 }
@@ -461,7 +532,8 @@ int fr_debug_setstack(lua_State* L) {
     if (replacement->tt != original->tt)
         luaL_typeerror(L, 3, lua_typename(L, original->tt));
 
-    *original = *replacement;
+    setobj(L, original, replacement);
+    luaC_barrier(L, ci->func, replacement);
 
     return 0;
 }

@@ -456,7 +456,7 @@ void stephook(lua_State* L, lua_Debug* ar) {
     api_incr_top(L);
     lua_pushcclosure(L, stephook_filter, "stephook_filter", 1);
 
-    InstructionWrapper* wrapper = static_cast<InstructionWrapper*>(lua_newuserdata(L, sizeof(InstructionWrapper)));
+    InstructionWrapper* wrapper = static_cast<InstructionWrapper*>(lua_newuserdatatagged(L, sizeof(InstructionWrapper), userdata::InstructionWrapper));
     wrapper->proto = this_cl->l.p;
     wrapper->insn = insn;
     if (Luau::getOpLength(static_cast<LuauOpcode>(LUAU_INSN_OP(insn))) > 1)
