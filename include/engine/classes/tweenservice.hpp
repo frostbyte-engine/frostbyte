@@ -7,6 +7,7 @@ namespace frostbyte {
 
 struct Tween {
     bool active;
+    bool interrupted;
     std::string property;
     rbxValueVariant original;
     rbxValueVariant target;
@@ -27,8 +28,8 @@ struct TweenObject {
 
     enum ReverseState {
         // NOTE: activateTween relies on NA as 0 and WAITING as 1
-        NA,
-        WAITING,
+        NA = 0,
+        WAITING = 1,
         REVERSING
     } reverse_state = NA;
 

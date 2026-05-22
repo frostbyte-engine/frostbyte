@@ -155,6 +155,12 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
         }
     }
 
+    for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
+        auto& tween = tween_object.tween_list[i];
+        tween.active = true;
+        tween.interrupted = false;
+    }
+
     // interrupt conflicting tweens
     {
 
@@ -173,6 +179,8 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
 
         if (other_tween_object.instance != tween_object.instance)
             continue;
+        if (other_tween_instance == tween_instance)
+            continue;
 
         for (size_t i2 = 0; i2 < other_tween_object.tween_list.size(); i2++) {
             auto& other_tween = other_tween_object.tween_list[i2];
@@ -186,6 +194,7 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
             }
 
             other_tween.active = !found;
+            other_tween.interrupted = found;
         }
     }
     }
@@ -195,7 +204,7 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
 
     if (has_delay && !was_paused) {
         tween_object.delay_timer = clock + tween_info.delay_time;
-        playback_state = &Enum::enum_map.at("PlaybackState").item_map.at("Delayed");
+        setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Delayed"));
     } else {
         tween_object.delay_timer = 0;
 
@@ -203,10 +212,8 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
         if (was_paused)
             tween_object.start_time -= tween_object.elapsed;
         tween_object.end_time = clock + tween_info.time - (tween_object.elapsed * was_paused);
-        playback_state = &Enum::enum_map.at("PlaybackState").item_map.at("Playing");
+        setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Playing"));
     }
-
-    reportChanged(L, tween_instance, "PlaybackState");
 
     TweenService::active_tween_list.push_back(tween_instance);
 }
@@ -242,8 +249,7 @@ void TweenService::process(lua_State *L) {
 
         if (tween_object.delay_timer) {
             if (clock >= tween_object.delay_timer) {
-                playback_state->name = "Playing";
-                reportChanged(L, tween_instance, "PlaybackState");
+                setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Playing"));
 
                 tween_object.delay_timer = 0;
                 goto RESET_TIMING;
@@ -269,8 +275,12 @@ void TweenService::process(lua_State *L) {
             elapsed = tween_info.time - elapsed;
 
         bool has_active_tween = false;
+        bool was_interrupted = false;
         for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
             auto& tween = tween_object.tween_list[i];
+
+            if (tween.interrupted)
+                was_interrupted = true;
 
             if (!tween.active)
                 continue;
@@ -353,9 +363,9 @@ void TweenService::process(lua_State *L) {
                 assert(!"UNHANDLED TYPE FOR TWEEN");
         }
 
-        // cancel if every tween has been interrupted
+        // cancel if every tween has been interrupted, or complete if all tweens have finished naturally
         if (!has_active_tween && !tween_object.is_empty) {
-            setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Cancelled"));
+            setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at(was_interrupted ? "Cancelled" : "Completed"));
             goto COMPLETE;
         }
 
@@ -457,6 +467,7 @@ namespace rbxInstance_TweenService_methods {
 
             tween_object.tween_list.push_back({
                 .active = true,
+                .interrupted = false,
                 .property = property,
                 .target = luaValueToValueVariant(L, -1, original) 
             });
