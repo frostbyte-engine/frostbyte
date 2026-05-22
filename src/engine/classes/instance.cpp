@@ -268,10 +268,10 @@ rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& r
 
         return rbxCallback{ .index = index };
 
-    } else if (std::holds_alternative<EnumItemWrapper>(reference)) {
-        const char* expected_enum = std::get<EnumItemWrapper>(reference).enum_name.c_str();
+    } else if (std::holds_alternative<EnumItem*>(reference)) {
+        const char* expected_enum = std::get<EnumItem*>(reference)->enum_name.c_str();
         const auto value = lua_checkenumitem(L, idx, expected_enum);
-        return EnumItemWrapper{ .name = value->name, .enum_name = value->enum_name };
+        return value;
 
     } else if (std::holds_alternative<Color>(reference))
         return *lua_checkcolor(L, idx);
@@ -318,7 +318,7 @@ void setInstanceValueVariant(std::shared_ptr<rbxInstance> instance, lua_State* L
     else handleType(rbxCallback)
     else handleType(std::shared_ptr<rbxInstance>)
 
-    else handleType(EnumItemWrapper)
+    else handleType(EnumItem*)
     else handleType(Color)
     else handleType(TweenInfo)
     else handleType(ColorSequenceKeypoint)
@@ -591,8 +591,8 @@ int rbxInstance__index(lua_State* L) {
                     assert(!"UNHANDLED ALTERNATIVE FOR PROPERTY VALUE");
                 break;
             case DataType: {
-                if (std::holds_alternative<EnumItemWrapper>(value->value))
-                    assert(pushEnumItem(L, std::get<EnumItemWrapper>(value->value)) == 1);
+                if (std::holds_alternative<EnumItem*>(value->value))
+                    assert(pushEnumItem(L, std::get<EnumItem*>(value->value)) == 1);
 
                 else if (std::holds_alternative<Color>(value->value))
                     assert(pushColor(L, std::get<Color>(value->value)) == 1);
@@ -802,9 +802,9 @@ int rbxInstance__newindex(lua_State* L) {
             if (std::holds_alternative<std::monostate>(value->value))
                 // TODO: why did i create this branch lol....
                 ;
-            if (std::holds_alternative<EnumItemWrapper>(value->value)) {
-                const char* expected_enum = std::get<EnumItemWrapper>(value->value).enum_name.c_str();
-                const std::string new_value = lua_checkenumitem(L, 3, expected_enum)->name;
+            if (std::holds_alternative<EnumItem*>(value->value)) {
+                const char* expected_enum = std::get<EnumItem*>(value->value)->enum_name.c_str();
+                const auto new_value = lua_checkenumitem(L, 3, expected_enum);
                 setInstanceValue(instance, L, key, new_value);
 
             } else if (std::holds_alternative<Color>(value->value)) {
@@ -1165,7 +1165,7 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
             default_exists = j.is_string();
             if (default_exists) {
                 default_value.assign(j.template get<std::string>());
-                if (default_value.substr(0, 10) == "__api_dump")
+                if (default_value.empty() || default_value.substr(0, 10) == "__api_dump")
                     default_exists = false;
             }
             }
@@ -1215,15 +1215,15 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
                     property->type_category = DataType;
                     property->default_value = rbxValue();
 
-                    std::string item_name;
-                    if (default_exists)
-                        item_name = default_value;
-                    else {
+                    EnumItem* default_item = nullptr;
+                    if (default_exists) {
+                        default_item = &Enum::enum_map.at(type).item_map.at(default_value);
+                    } else {
                         if (EnumItem* enum_item = getEnumItemFromValue(type.c_str(), 0))
-                            item_name = enum_item->name;
+                            default_item = enum_item;
                     }
 
-                    property->default_value.value = EnumItemWrapper { .name = item_name, .enum_name = type };
+                    property->default_value.value = default_item;
                 } else if (category == "DataType") {
                     property->type_category = DataType;
                     property->default_value = rbxValue();

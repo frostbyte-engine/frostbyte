@@ -66,8 +66,8 @@ void rbxInstance_StarterGui_init(lua_State* L) {
     setInstanceValue(notification_frame_title_template, L, "Size", UDim2{1, -100 * 2, 0, 18}, true);
     setInstanceValue(notification_frame_title_template, L, "Position", UDim2{0, 100, 0.5, -18}, true);
     setInstanceValue(notification_frame_title_template, L, "BackgroundTransparency", 1.f, true);
-    getInstanceValue<EnumItemWrapper>(notification_frame_title_template, "Font").name = "SourceSansBold";
-    getInstanceValue<EnumItemWrapper>(notification_frame_title_template, "FontSize").name = "Size18";
+    setInstanceValue(notification_frame_title_template,L, "Font", &Enum::enum_map.at("Font").item_map.at("SourceSansBold"));
+    setInstanceValue(notification_frame_title_template,L, "FontSize", &Enum::enum_map.at("FontSize").item_map.at("Size18"));
     setInstanceValue(notification_frame_title_template, L, "TextColor3", Color{247, 247, 247, 255}, true);
 
     notification_frame_text_template = newInstance(L, "TextLabel");
@@ -75,11 +75,11 @@ void rbxInstance_StarterGui_init(lua_State* L) {
     setInstanceValue(notification_frame_text_template, L, "Size", UDim2{1, -100 * 2, 0, 28}, true);
     setInstanceValue(notification_frame_text_template, L, "Position", UDim2{0, 100, 0.5, 1}, true);
     setInstanceValue(notification_frame_text_template, L, "BackgroundTransparency", 1.f, true);
-    getInstanceValue<EnumItemWrapper>(notification_frame_text_template, "Font").name = "SourceSans";
-    getInstanceValue<EnumItemWrapper>(notification_frame_text_template, "FontSize").name = "Size14";
+    setInstanceValue(notification_frame_text_template, L, "Font", &Enum::enum_map.at("Font").item_map.at("SourceSans"));
+    setInstanceValue(notification_frame_text_template, L, "FontSize", &Enum::enum_map.at("FontSize").item_map.at("Size14"));
     setInstanceValue(notification_frame_text_template, L, "TextColor3", Color{235, 235, 235, 255}, true);
     setInstanceValue(notification_frame_text_template, L, "TextWrap", true, true);
-    getInstanceValue<EnumItemWrapper>(notification_frame_text_template, "TextYAlignment").name = "Top";
+    setInstanceValue(notification_frame_text_template, L, "TextYAlignment", &Enum::enum_map.at("TextYAlignment").item_map.at("Top"));
 }
 
 }; // namespace frostbyte

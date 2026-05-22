@@ -23,14 +23,16 @@ int pushTweenInfo(lua_State* L, TweenInfo tweeninfo) {
 
 static int TweenInfo_new(lua_State* L) {
     TweenInfo tweeninfo;
+    tweeninfo.easing_direction = &Enum::enum_map.at("EasingDirection").item_map.at("Out");
+    tweeninfo.easing_style = &Enum::enum_map.at("EasingStyle").item_map.at("Quad");
 
     // FIXME: passing nil is not valid in Roblox, but I really like being able to pass nil; this is where I start to reconsider "1:1 error handling"...
     if (!lua_isnoneornil(L, 1))
         tweeninfo.time = luaL_checknumberrange(L, 1, 0, static_cast<uint32_t>(-1), "time");
     if (!lua_isnoneornil(L, 2))
-        tweeninfo.easing_style.name = lua_checkenumitem(L, 2, "EasingStyle")->name;
+        tweeninfo.easing_style = lua_checkenumitem(L, 2, "EasingStyle");
     if (!lua_isnoneornil(L, 3))
-        tweeninfo.easing_direction.name = lua_checkenumitem(L, 3, "EasingDirection")->name;
+        tweeninfo.easing_direction = lua_checkenumitem(L, 3, "EasingDirection");
     if (!lua_isnoneornil(L, 4))
         tweeninfo.repeat_count = luaL_checknumberrange(L, 4, 0, static_cast<uint32_t>(-1), "repeatCount");
     if (!lua_isnoneornil(L, 5))
@@ -50,7 +52,7 @@ TweenInfo* lua_checktweeninfo(lua_State* L, int narg) {
 static int TweenInfo__tostring(lua_State* L) {
     TweenInfo* tweeninfo = lua_checktweeninfo(L, 1);
 
-    lua_pushfstringL(L, "Time:%.f DelayTime:%.f RepeatCount:%d Reverses:%s EasingDirection:%s EasingStyle:%s", tweeninfo->time, tweeninfo->delay_time, tweeninfo->repeat_count, tweeninfo->reverses ? "True" : "False", tweeninfo->easing_direction.name.c_str(), tweeninfo->easing_style.name.c_str());
+    lua_pushfstringL(L, "Time:%.f DelayTime:%.f RepeatCount:%d Reverses:%s EasingDirection:%s EasingStyle:%s", tweeninfo->time, tweeninfo->delay_time, tweeninfo->repeat_count, tweeninfo->reverses ? "True" : "False", tweeninfo->easing_direction->name.c_str(), tweeninfo->easing_style->name.c_str());
     return 1;
 }
 

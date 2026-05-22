@@ -24,14 +24,8 @@ public:
     int lookup = 0;
 };
 
-struct EnumItemWrapper {
-    std::string name;
-    std::string enum_name;
-};
+int pushEnumItem(lua_State* L, EnumItem* enum_item);
 
-int pushEnumItem(lua_State* L, EnumItemWrapper& wrapper);
-
-EnumItem& getEnumItemFromWrapper(EnumItemWrapper& wrapper);
 EnumItem* getEnumItemFromValue(const char* enum_name, unsigned int value);
 
 EnumItem* lua_checkenumitem(lua_State* L, int narg, const char* expected_enum);

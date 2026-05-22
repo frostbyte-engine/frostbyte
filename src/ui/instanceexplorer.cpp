@@ -120,19 +120,19 @@ void renderPropertyValue(rbxProperty* property, rbxValueVariant& value) {
                 ImGui_STDString(label, std::get<std::string>(value));
             break;
         case DataType:
-            if (std::holds_alternative<EnumItemWrapper>(value)) {
-                auto& wrapper = std::get<EnumItemWrapper>(value);
+            if (std::holds_alternative<EnumItem*>(value)) {
+                auto& enum_item = std::get<EnumItem*>(value);
 
                 int selected = -1;
                 std::vector<const char*> item_list;
-                auto& item_map = Enum::enum_map[wrapper.enum_name].item_map;
+                auto& item_map = Enum::enum_map[enum_item->enum_name].item_map;
 
                 const size_t count = item_map.size();
                 if (count) {
                     item_list.reserve(count);
                     int index = 0;
                     for (auto it = item_map.begin(); it != item_map.end(); it++, index++) {
-                        if (wrapper.name == it->first)
+                        if (enum_item->name == it->first)
                             selected = index;
                         item_list.push_back(it->first.c_str());
                     }
@@ -140,7 +140,7 @@ void renderPropertyValue(rbxProperty* property, rbxValueVariant& value) {
                     ImGui::Combo(label, &selected, item_list.data(), item_list.size());
 
                     if (selected > -1)
-                        wrapper.name = item_list[selected];
+                        enum_item = &item_map.at(item_list[selected]);
                 }
             } else if (std::holds_alternative<Color>(value))
                 ImGui_Color3(label, std::get<Color>(value));

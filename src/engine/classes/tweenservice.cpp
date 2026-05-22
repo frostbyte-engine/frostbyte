@@ -19,8 +19,8 @@ std::shared_mutex TweenService::active_tween_list_mutex;
 std::map<std::shared_ptr<rbxInstance>, TweenObject> tween_instance_to_object_map;
 
 void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> tween_instance) {
-    auto& playback_state = getInstanceValue<EnumItemWrapper>(tween_instance, "PlaybackState");
-    if (playback_state.name == "Delayed" || playback_state.name == "Playing")
+    auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
+    if (playback_state->name == "Delayed" || playback_state->name == "Playing")
         return;
 
     std::lock_guard lock(TweenService::active_tween_list_mutex);
@@ -28,14 +28,14 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
     auto& tween_info = getInstanceValue<TweenInfo>(tween_instance, "TweenInfo");
     auto& tween_object = tween_instance_to_object_map.at(tween_instance);
 
-    const bool was_paused = playback_state.name == "Paused";
+    const bool was_paused = playback_state->name == "Paused";
 
     const double clock = lua_clock();
 
     tween_object.tween_func = linear;
-    switch (getEnumItemFromWrapper(tween_info.easing_direction).value) {
+    switch (tween_info.easing_direction->value) {
         case 0: // In
-            switch (getEnumItemFromWrapper(tween_info.easing_style).value) {
+            switch (tween_info.easing_style->value) {
                 case 0: // Linear
                     break;
                 case 1: // Sine
@@ -71,7 +71,7 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
             }
             break;
         case 1: // Out
-            switch (getEnumItemFromWrapper(tween_info.easing_style).value) {
+            switch (tween_info.easing_style->value) {
                 case 0: // Linear
                     break;
                 case 1: // Sine
@@ -107,7 +107,7 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
             }
             break;
         case 2: // InOut
-            switch (getEnumItemFromWrapper(tween_info.easing_style).value) {
+            switch (tween_info.easing_style->value) {
                 case 0: // Linear
                     break;
                 case 1: // Sine
@@ -195,7 +195,7 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
 
     if (has_delay && !was_paused) {
         tween_object.delay_timer = clock + tween_info.delay_time;
-        playback_state.name = "Delayed";
+        playback_state = &Enum::enum_map.at("PlaybackState").item_map.at("Delayed");
     } else {
         tween_object.delay_timer = 0;
 
@@ -203,7 +203,7 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
         if (was_paused)
             tween_object.start_time -= tween_object.elapsed;
         tween_object.end_time = clock + tween_info.time - (tween_object.elapsed * was_paused);
-        playback_state.name = "Playing";
+        playback_state = &Enum::enum_map.at("PlaybackState").item_map.at("Playing");
     }
 
     reportChanged(L, tween_instance, "PlaybackState");
@@ -211,18 +211,16 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
     TweenService::active_tween_list.push_back(tween_instance);
 }
 void TweenService::cancelTween(lua_State* L, std::shared_ptr<rbxInstance> tween_instance) {
-    auto& playback_state = getInstanceValue<EnumItemWrapper>(tween_instance, "PlaybackState");
-    if (playback_state.name == "Completed" || playback_state.name == "Cancelled")
+    auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
+    if (playback_state->name == "Completed" || playback_state->name == "Cancelled")
         return;
-    playback_state.name = "Cancelled";
-    reportChanged(L, tween_instance, "PlaybackState");
+    setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Cancelled"));
 }
 void TweenService::pauseTween(lua_State* L, std::shared_ptr<rbxInstance> tween_instance) {
-    auto& playback_state = getInstanceValue<EnumItemWrapper>(tween_instance, "PlaybackState");
-    if (playback_state.name != "Playing")
+    auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
+    if (playback_state->name != "Playing")
         return;
-    playback_state.name = "Paused";
-    reportChanged(L, tween_instance, "PlaybackState");
+    setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Paused"));
 }
 
 void TweenService::process(lua_State *L) {
@@ -236,15 +234,15 @@ void TweenService::process(lua_State *L) {
         auto& tween_instance = TweenService::active_tween_list[i];
         auto& tween_object = tween_instance_to_object_map.at(tween_instance);
 
-        auto& playback_state = getInstanceValue<EnumItemWrapper>(tween_instance, "PlaybackState");
+        auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
         auto& tween_info = getInstanceValue<TweenInfo>(tween_instance, "TweenInfo");
 
-        if (playback_state.name == "Cancelled")
+        if (playback_state->name == "Cancelled")
             goto COMPLETE;
 
         if (tween_object.delay_timer) {
             if (clock >= tween_object.delay_timer) {
-                playback_state.name = "Playing";
+                playback_state->name = "Playing";
                 reportChanged(L, tween_instance, "PlaybackState");
 
                 tween_object.delay_timer = 0;
@@ -254,7 +252,7 @@ void TweenService::process(lua_State *L) {
         }
 
         {
-        if (playback_state.name != "Playing")
+        if (playback_state->name != "Playing")
             continue;
 
         if (tween_object.reset_properties) {
@@ -292,7 +290,7 @@ void TweenService::process(lua_State *L) {
                 setInstanceValue(tween_object.instance, L, property, static_cast<float>(tween_object.tween_func(elapsed, std::get<float>(tween.original), std::get<float>(tween.target) - std::get<float>(tween.original), tween_info.time)));
             else if (std::holds_alternative<double>(value))
                 setInstanceValue(tween_object.instance, L, property, static_cast<double>(tween_object.tween_func(elapsed, std::get<double>(tween.original), std::get<double>(tween.target) - std::get<double>(tween.original), tween_info.time)));
-            else if (std::holds_alternative<EnumItemWrapper>(value)) {
+            else if (std::holds_alternative<EnumItem*>(value)) {
                 // NOTE: untested; not going to test rn because I can't find a property that doesn't throw the 'is not a datatype that can be tweened' error
                 // const unsigned int original_value = getEnumItemFromWrapper(std::get<EnumItemWrapper>(tween.original)).value;
                 // const unsigned int target_value = getEnumItemFromWrapper(std::get<EnumItemWrapper>(tween.target)).value;
@@ -357,8 +355,7 @@ void TweenService::process(lua_State *L) {
 
         // cancel if every tween has been interrupted
         if (!has_active_tween && !tween_object.is_empty) {
-            playback_state.name = "Cancelled";
-            reportChanged(L, tween_instance, "PlaybackState");
+            setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Cancelled"));
             goto COMPLETE;
         }
 
@@ -383,16 +380,14 @@ void TweenService::process(lua_State *L) {
                 if (tween_object.has_delay) {
                     tween_object.delay_timer = clock + tween_info.delay_time;
 
-                    playback_state.name = "Delayed";
-                    reportChanged(L, tween_instance, "PlaybackState");
+                    setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Delayed"));
                     continue;
                 }
 
                 goto RESET_TIMING;
             }
 
-            playback_state.name = "Completed";
-            reportChanged(L, tween_instance, "PlaybackState");
+            setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Completed"));
             goto COMPLETE;
         }
         }
@@ -411,7 +406,7 @@ void TweenService::process(lua_State *L) {
 
     for (size_t i = 0; i < completed_tween_list.size(); i++) {
         auto& tween_instance = completed_tween_list[i];
-        auto& playback_state = getInstanceValue<EnumItemWrapper>(tween_instance, "PlaybackState");
+        auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
 
         TweenService::active_tween_list.erase(std::find(TweenService::active_tween_list.begin(), TweenService::active_tween_list.end(), tween_instance));
 
@@ -452,7 +447,12 @@ namespace rbxInstance_TweenService_methods {
             // TODO: Vector2int16
             // TODO: there is another err, "TweenService:Create property named 'PROPERTY' on object 'NAME' is not a data type that can be tweened";
             // we need to figure out what types are of DescribedBase
-            if (!(std::holds_alternative<bool>(original) || std::holds_alternative<int32_t>(original) || std::holds_alternative<int64_t>(original) || std::holds_alternative<float>(original) || std::holds_alternative<double>(original) || std::holds_alternative<EnumItemWrapper>(original) || std::holds_alternative<Color>(original) || std::holds_alternative<UDim>(original) || std::holds_alternative<UDim2>(original) || std::holds_alternative<Vector2>(original) || std::holds_alternative<Vector3>(original)))
+            if (!(std::holds_alternative<bool>(original) || std::holds_alternative<int32_t>(original) ||
+                  std::holds_alternative<int64_t>(original) || std::holds_alternative<float>(original) ||
+                  std::holds_alternative<double>(original) || std::holds_alternative<EnumItem*>(original) ||
+                  std::holds_alternative<Color>(original) || std::holds_alternative<UDim>(original) ||
+                  std::holds_alternative<UDim2>(original) || std::holds_alternative<Vector2>(original) ||
+                  std::holds_alternative<Vector3>(original)))
                 luaL_error(L, "property named '%s' cannot be tweened due to type mismatch (property is a 'DescribedBase', but given type is '%s')", property, luaL_typename(L, -1));
 
             tween_object.tween_list.push_back({

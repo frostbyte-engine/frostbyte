@@ -5,11 +5,11 @@
 namespace frostbyte {
 
 struct TweenInfo {
-    EnumItemWrapper easing_direction{ .name = "Out", .enum_name = "EasingDirection" };
+    EnumItem* easing_direction = nullptr;
+    EnumItem* easing_style = nullptr;
     double time = 1;
     double delay_time = 0;
     int repeat_count = 0;
-    EnumItemWrapper easing_style{ .name = "Quad", .enum_name = "EasingStyle" };
     bool reverses = false;
 };
 

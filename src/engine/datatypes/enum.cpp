@@ -18,6 +18,7 @@ int pushEnumTable(lua_State* L, std::string name) {
 
     if (*lookup) {
         lua_rawgeti(L, -1, *lookup);
+        lua_remove(L, -2);
         return 1;
     }
 
@@ -43,16 +44,16 @@ int pushEnum(lua_State* L, std::string name) {
     return 1;
 }
 
-int pushEnumItem(lua_State* L, std::string enum_name, std::string name) {
-    assert(pushEnumTable(L, enum_name) == 1);
+int pushEnumItem(lua_State* L, EnumItem* enum_item) {
+    assert(pushEnumTable(L, enum_item->enum_name.c_str()) == 1);
     assert(lua_rawgeti(L, -1, 2) != LUA_TNIL);
     lua_remove(L, -2);
 
-    EnumItem* enum_item = &Enum::enum_map.at(enum_name).item_map.at(name);
     int* lookup = &enum_item->lookup;
 
     if (*lookup) {
         lua_rawgeti(L, -1, *lookup);
+        lua_remove(L, -2);
         return 1;
     }
 
@@ -65,12 +66,8 @@ int pushEnumItem(lua_State* L, std::string enum_name, std::string name) {
     }, true);
     return 1;
 }
-int pushEnumItem(lua_State* L, EnumItemWrapper& wrapper) {
-    return pushEnumItem(L, wrapper.enum_name, wrapper.name);
-}
-
-EnumItem& getEnumItemFromWrapper(EnumItemWrapper& wrapper) {
-    return Enum::enum_map.at(wrapper.enum_name).item_map.at(wrapper.name);
+int pushEnumItem(lua_State* L, std::string enum_name, std::string name) {
+    return pushEnumItem(L, &Enum::enum_map.at(enum_name).item_map.at(name));
 }
 
 EnumItem* getEnumItemFromValue(const char* enum_name, unsigned int value) {

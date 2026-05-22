@@ -105,7 +105,7 @@ typedef std::variant<
     // TODO: this should most likely be a weak_ptr
     std::shared_ptr<rbxInstance>,
 
-    EnumItemWrapper,
+    EnumItem*,
     Color,
     TweenInfo,
     ColorSequenceKeypoint,
@@ -212,12 +212,13 @@ void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const
     auto& rbxvalue = instance->values.at(name);
     auto& variant = rbxvalue.value;
 
-    if (std::holds_alternative<EnumItemWrapper>(variant)) {
-        if constexpr (std::is_same_v<T, std::string>) {
-            auto& wrapper = std::get<EnumItemWrapper>(variant);
-            if (value == wrapper.name)
+    if (std::holds_alternative<EnumItem*>(variant)) {
+        if constexpr (std::is_same_v<T, EnumItem*>) {
+            EnumItem*& enum_item = std::get<EnumItem*>(variant);
+            if (value == enum_item)
                 goto DUPLICATE;
-            wrapper.name = value;
+
+            enum_item = value;
 
             goto AFTER_SET;
         }
@@ -235,7 +236,7 @@ void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const
     } else if (std::holds_alternative<TweenInfo>(variant)) {
         if constexpr (std::is_same_v<T, TweenInfo>) {
             auto& v = std::get<TweenInfo>(variant);
-            if (value.easing_direction.name == v.easing_direction.name && value.time == v.time && value.delay_time == v.delay_time && value.repeat_count == v.repeat_count && value.easing_style.name == v.easing_style.name && value.reverses == v.reverses)
+            if (value.easing_direction == v.easing_direction && value.time == v.time && value.delay_time == v.delay_time && value.repeat_count == v.repeat_count && value.easing_style == v.easing_style && value.reverses == v.reverses)
                 goto DUPLICATE;
             v = value;
 

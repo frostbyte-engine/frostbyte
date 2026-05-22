@@ -26,7 +26,7 @@ namespace rbxInstance_TweenBase_methods {
 
 void rbxInstance_TweenBase_init() {
     rbxClass::class_map["TweenBase"]->constructor = [](lua_State* L, std::shared_ptr<rbxInstance> instance) {
-        getInstanceValue<EnumItemWrapper>(instance, "PlaybackState").name = "Begin";
+        setInstanceValue(instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Begin"));
     };
 
     rbxClass::class_map["TweenBase"]->methods["Cancel"].func = rbxInstance_TweenBase_methods::cancel;

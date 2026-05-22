@@ -374,8 +374,8 @@ void UserInputService::process(lua_State *L, bool anyImGui) {
             input_object = newInstance(L, "InputObject");
             input_object_array[array_index] = input_object;
 
-            auto& key_code = getInstanceValue<EnumItemWrapper>(input_object, "KeyCode");
-            auto& user_input_type = getInstanceValue<EnumItemWrapper>(input_object, "UserInputType");
+            auto& key_code = getInstanceValue<EnumItem*>(input_object, "KeyCode");
+            auto& user_input_type = getInstanceValue<EnumItem*>(input_object, "UserInputType");
 
             switch (event.type) {
                 case InputEvent::MouseClick:
@@ -394,8 +394,11 @@ void UserInputService::process(lua_State *L, bool anyImGui) {
                     break;
             }
 
-            key_code.name.assign(key_code_name);
-            user_input_type.name.assign(user_input_type_name);
+            // key_code.name.assign(key_code_name);
+            // user_input_type.name.assign(user_input_type_name);
+
+            key_code = &Enum::enum_map.at("KeyCode").item_map.at(key_code_name);
+            user_input_type = &Enum::enum_map.at("UserInputType").item_map.at(user_input_type_name);
         }
 
         if (event.state == InputEnded)
@@ -412,7 +415,7 @@ void UserInputService::process(lua_State *L, bool anyImGui) {
             0
         };
 
-        getInstanceValue<EnumItemWrapper>(input_object, "UserInputState").name.assign(input_state);
+        setInstanceValue(input_object, L, "UserInputState", &Enum::enum_map.at("UserInputState").item_map.at(input_state));
         setInstanceValue(input_object, L, "Position", position);
         setInstanceValue(input_object, L, "Delta", delta);
 
