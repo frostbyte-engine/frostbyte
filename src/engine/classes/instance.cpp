@@ -17,6 +17,7 @@
 #include "engine/classes/workspace.hpp"
 #include "engine/datatypes/color3.hpp"
 #include "engine/datatypes/enum.hpp"
+#include "engine/datatypes/font.hpp"
 #include "engine/datatypes/tweeninfo.hpp"
 #include "engine/datatypes/rbxscriptsignal.hpp"
 #include "engine/datatypes/vector2.hpp"
@@ -268,13 +269,15 @@ rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& r
 
         return rbxCallback{ .index = index };
 
-    } else if (std::holds_alternative<EnumItem*>(reference)) {
+    } else if (std::holds_alternative<Color>(reference))
+        return *lua_checkcolor(L, idx);
+    else if (std::holds_alternative<EnumItem*>(reference)) {
         const char* expected_enum = std::get<EnumItem*>(reference)->enum_name.c_str();
         const auto value = lua_checkenumitem(L, idx, expected_enum);
         return value;
 
-    } else if (std::holds_alternative<Color>(reference))
-        return *lua_checkcolor(L, idx);
+    } else if (std::holds_alternative<EngineFont>(reference))
+        return *lua_checkfont(L, idx);
     else if (std::holds_alternative<ColorSequenceKeypoint>(reference))
         return *lua_checkcolorsequencekeypoint(L, idx);
     else if (std::holds_alternative<ColorSequence>(reference))
@@ -318,8 +321,9 @@ void setInstanceValueVariant(std::shared_ptr<rbxInstance> instance, lua_State* L
     else handleType(rbxCallback)
     else handleType(std::shared_ptr<rbxInstance>)
 
-    else handleType(EnumItem*)
     else handleType(Color)
+    else handleType(EnumItem*)
+    else handleType(EngineFont)
     else handleType(TweenInfo)
     else handleType(ColorSequenceKeypoint)
     else handleType(ColorSequence)
@@ -591,11 +595,12 @@ int rbxInstance__index(lua_State* L) {
                     assert(!"UNHANDLED ALTERNATIVE FOR PROPERTY VALUE");
                 break;
             case DataType: {
-                if (std::holds_alternative<EnumItem*>(value->value))
-                    assert(pushEnumItem(L, std::get<EnumItem*>(value->value)) == 1);
-
-                else if (std::holds_alternative<Color>(value->value))
+                if (std::holds_alternative<Color>(value->value))
                     assert(pushColor(L, std::get<Color>(value->value)) == 1);
+                else if (std::holds_alternative<EnumItem*>(value->value))
+                    assert(pushEnumItem(L, std::get<EnumItem*>(value->value)) == 1);
+                else if (std::holds_alternative<EngineFont>(value->value))
+                    assert(pushFont(L, std::get<EngineFont>(value->value)) == 1);
                 else if (std::holds_alternative<TweenInfo>(value->value))
                     assert(pushTweenInfo(L, std::get<TweenInfo>(value->value)) == 1);
                 else if (std::holds_alternative<ColorSequenceKeypoint>(value->value))
@@ -802,14 +807,16 @@ int rbxInstance__newindex(lua_State* L) {
             if (std::holds_alternative<std::monostate>(value->value))
                 // TODO: why did i create this branch lol....
                 ;
-            if (std::holds_alternative<EnumItem*>(value->value)) {
+            if (std::holds_alternative<Color>(value->value)) {
+            // TODO: (for all of these types) use to* not check* and error "Unable to assign property %skey. %stype expected, got %stypename3"
+                const auto new_value = lua_checkcolor(L, 3);
+                setInstanceValue(instance, L, key, *new_value);
+            } else if (std::holds_alternative<EnumItem*>(value->value)) {
                 const char* expected_enum = std::get<EnumItem*>(value->value)->enum_name.c_str();
                 const auto new_value = lua_checkenumitem(L, 3, expected_enum);
                 setInstanceValue(instance, L, key, new_value);
-
-            } else if (std::holds_alternative<Color>(value->value)) {
-            // TODO: (for all of these types) use to* not check* and error "Unable to assign property %skey. %stype expected, got %stypename3"
-                const auto new_value = lua_checkcolor(L, 3);
+            } else if (std::holds_alternative<EngineFont>(value->value)) {
+                const auto new_value = lua_checkfont(L, 3);
                 setInstanceValue(instance, L, key, *new_value);
             } else if (std::holds_alternative<TweenInfo>(value->value)) {
                 const auto new_value = lua_checktweeninfo(L, 3);
@@ -1131,6 +1138,10 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
 
     setup_enums(L);
 
+    pushFont(L, "Arimo", &Enum::enum_map.at("FontWeight").item_map.at("Regular"), &Enum::enum_map.at("FontStyle").item_map.at("Normal"));
+    EngineFont default_font = *lua_checkfont(L, -1);
+    lua_pop(L, 1);
+
     std::map<std::string, std::string> superclass_map;
 
     for (auto& class_json : api_json["Classes"]) {
@@ -1231,6 +1242,8 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
                     // FIXME: all datatypes
                     if (type == "Color3")
                         property->default_value.value = Color{255, 255, 255, 255};
+                    else if (type == "Font")
+                        property->default_value.value = default_font;
                     else if (type == "TweenInfo")
                         property->default_value.value = TweenInfo();
                     else if (type == "ColorSequenceKeypoint")

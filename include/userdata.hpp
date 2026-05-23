@@ -12,6 +12,7 @@ namespace frostbyte {
             X(Enums)                   \
             X(Enum)                    \
             X(EnumItem)                \
+            X(Font)                    \
             X(Instance)                \
             X(NumberRange)             \
             X(NumberSequenceKeypoint)  \

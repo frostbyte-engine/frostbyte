@@ -2,8 +2,8 @@
 
 #include "raylib.h"
 
-#include <map>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "lua.h"
@@ -17,8 +17,10 @@ public:
 
     static size_t font_count;
     static std::vector<Font*> font_list;
-    static std::map<std::string, size_t> hash_font_map;
+    static std::unordered_map<std::string, size_t> hash_font_map;
     static std::vector<std::string> font_name_list;
+
+    static std::unordered_map<std::string, Font*> engine_font_map;
 
     static void load();
     static void unload();

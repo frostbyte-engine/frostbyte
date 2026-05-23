@@ -15,10 +15,11 @@
 #include "raylib.h"
 
 #include "engine/datatypes/colorsequence.hpp"
+#include "engine/datatypes/enum.hpp"
+#include "engine/datatypes/font.hpp"
 #include "engine/datatypes/numberrange.hpp"
 #include "engine/datatypes/numbersequence.hpp"
 #include "engine/datatypes/rect.hpp"
-#include "engine/datatypes/enum.hpp"
 #include "engine/datatypes/tweeninfo.hpp"
 #include "engine/datatypes/udim.hpp"
 #include "engine/datatypes/udim2.hpp"
@@ -105,8 +106,9 @@ typedef std::variant<
     // TODO: this should most likely be a weak_ptr
     std::shared_ptr<rbxInstance>,
 
-    EnumItem*,
     Color,
+    EnumItem*,
+    EngineFont,
     TweenInfo,
     ColorSequenceKeypoint,
     ColorSequence,
@@ -212,18 +214,7 @@ void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const
     auto& rbxvalue = instance->values.at(name);
     auto& variant = rbxvalue.value;
 
-    if (std::holds_alternative<EnumItem*>(variant)) {
-        if constexpr (std::is_same_v<T, EnumItem*>) {
-            EnumItem*& enum_item = std::get<EnumItem*>(variant);
-            if (value == enum_item)
-                goto DUPLICATE;
-
-            enum_item = value;
-
-            goto AFTER_SET;
-        }
-        throw std::runtime_error("expected std::string when setting an EnumItem (pass the desired item's name)");
-    } else if (std::holds_alternative<Color>(variant)) {
+    if (std::holds_alternative<Color>(variant)) {
         if constexpr (std::is_same_v<T, Color>) {
             auto& v = std::get<Color>(variant);
             if (value.r == v.r && value.g == v.g && value.b == v.b)
@@ -233,6 +224,28 @@ void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const
             goto AFTER_SET;
         }
         throw std::runtime_error("unexpected type when setting Color value");
+    } else if (std::holds_alternative<EnumItem*>(variant)) {
+        if constexpr (std::is_same_v<T, EnumItem*>) {
+            EnumItem*& enum_item = std::get<EnumItem*>(variant);
+            if (value == enum_item)
+                goto DUPLICATE;
+
+            enum_item = value;
+
+            goto AFTER_SET;
+        }
+        throw std::runtime_error("expected EnumItem* when setting an EnumItem");
+    } else if (std::holds_alternative<EngineFont>(variant)) {
+        if constexpr (std::is_same_v<T, EngineFont>) {
+            EngineFont& engine_font = std::get<EngineFont>(variant);
+            if (engine_font.font && engine_font.font == value.font)
+                goto DUPLICATE;
+
+            engine_font = value;
+
+            goto AFTER_SET;
+        }
+        throw std::runtime_error("unexpected type when setting an EngineFont");
     } else if (std::holds_alternative<TweenInfo>(variant)) {
         if constexpr (std::is_same_v<T, TweenInfo>) {
             auto& v = std::get<TweenInfo>(variant);

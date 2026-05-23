@@ -293,15 +293,19 @@ std::string getStackMessage(lua_State* L) {
     return message;
 }
 
-int log(lua_State* L, Console::Message::Type type) {
-    std::string msg = getStackMessage(L);
+void consoleLog(lua_State* L, Console::Message::Type type, std::string message) {
     auto& console = getTask(L)->console;
     if (print_stdout && console->id != Tests)
-        printf("%s %.*s\n", Console::getMessageTypeString(type), static_cast<int>(msg.size()), msg.c_str());
+        printf("%s %.*s\n", Console::getMessageTypeString(type), static_cast<int>(message.size()), message.c_str());
     else
-        console->log(msg, type);
+        console->log(message, type);
+}
+int log(lua_State* L, Console::Message::Type type) {
+    std::string message = getStackMessage(L);
+    consoleLog(L, type, message);
     return 0;
 }
+
 // these functions are exposed in environment.cpp
 int fr_print(lua_State* L) {
     return log(L, Console::Message::INFO);

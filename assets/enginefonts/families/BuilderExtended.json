@@ -1,0 +1,35 @@
+{
+	"name": "Builder Extended",
+	"faces": [
+		{
+			"name": "Light",
+			"weight": 300,
+			"style": "normal",
+			"assetId": "rbxassetid://16658206024"
+		},
+		{
+			"name": "Regular",
+			"weight": 400,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderExtended-Regular.otf"
+		},
+		{
+			"name": "Semi Bold",
+			"weight": 600,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderExtended-SemiBold.otf"
+		},
+		{
+			"name": "Bold",
+			"weight": 700,
+			"style": "normal",
+            "assetId": "rbxasset://fonts/BuilderExtended-Bold.otf"
+		},
+		{
+			"name": "Extra Bold",
+			"weight": 800,
+			"style": "normal",
+			"assetId": "rbxassetid://16658204300"
+		}
+	]
+}

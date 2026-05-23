@@ -1,0 +1,113 @@
+{
+	"name": "Montserrat",
+	"faces": [
+		{
+			"name": "Thin",
+			"weight": 100,
+			"style": "normal",
+			"assetId": "rbxassetid://11598116985"
+		},
+		{
+			"name": "Thin Italic",
+			"weight": 100,
+			"style": "italic",
+			"assetId": "rbxassetid://11598120684"
+		},
+		{
+			"name": "Extra Light",
+			"weight": 200,
+			"style": "normal",
+			"assetId": "rbxassetid://11598119328"
+		},
+		{
+			"name": "Extra Light Italic",
+			"weight": 200,
+			"style": "italic",
+			"assetId": "rbxassetid://11598116110"
+		},
+		{
+			"name": "Light",
+			"weight": 300,
+			"style": "normal",
+			"assetId": "rbxassetid://11598118107"
+		},
+		{
+			"name": "Light Italic",
+			"weight": 300,
+			"style": "italic",
+			"assetId": "rbxassetid://11598116400"
+		},
+		{
+			"name": "Regular",
+			"weight": 400,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/Montserrat-Regular.ttf"
+		},
+		{
+			"name": "Italic",
+			"weight": 400,
+			"style": "italic",
+			"assetId": "rbxassetid://11598117311"
+		},
+		{
+			"name": "Medium",
+			"weight": 500,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/Montserrat-Medium.ttf"
+		},
+		{
+			"name": "Medium Italic",
+			"weight": 500,
+			"style": "italic",
+			"assetId": "rbxassetid://11598115824"
+		},
+		{
+			"name": "Semi Bold",
+			"weight": 600,
+			"style": "normal",
+			"assetId": "rbxassetid://11598119872"
+		},
+		{
+			"name": "Semi Bold Italic",
+			"weight": 600,
+			"style": "italic",
+			"assetId": "rbxassetid://11598117539"
+		},
+		{
+			"name": "Bold",
+			"weight": 700,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/Montserrat-Bold.ttf"
+		},
+		{
+			"name": "Bold Italic",
+			"weight": 700,
+			"style": "italic",
+			"assetId": "rbxassetid://11598117769"
+		},
+		{
+			"name": "Extra Bold",
+			"weight": 800,
+			"style": "normal",
+			"assetId": "rbxassetid://11598118540"
+		},
+		{
+			"name": "Extra Bold Italic",
+			"weight": 800,
+			"style": "italic",
+			"assetId": "rbxassetid://11598118921"
+		},
+		{
+			"name": "Black",
+			"weight": 900,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/Montserrat-Black.ttf"
+		},
+		{
+			"name": "Black Italic",
+			"weight": 900,
+			"style": "italic",
+			"assetId": "rbxassetid://11598119154"
+		}
+	]
+}

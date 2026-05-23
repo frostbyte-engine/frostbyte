@@ -1,14 +1,20 @@
 #include "fontloader.hpp"
-#include "common.hpp"
+
 #include "libraries/filesystemlib.hpp"
+
+#include "common.hpp"
+
+#include <fstream>
 
 namespace frostbyte {
 
 lua_State* FontLoader::L = nullptr;
 size_t FontLoader::font_count = 5;
 std::vector<Font*> FontLoader::font_list = {};
-std::map<std::string, size_t> FontLoader::hash_font_map;
+std::unordered_map<std::string, size_t> FontLoader::hash_font_map;
 std::vector<std::string> FontLoader::font_name_list;
+
+std::unordered_map<std::string, Font*> FontLoader::engine_font_map;
 
 void FontLoader::load() {
     // NOTE: L will not be initialized yet
@@ -23,7 +29,7 @@ void FontLoader::load() {
     #define getFont(varname, path)                                                 \
         tmp_font_path.assign(FileSystem::home_path);                               \
         tmp_font_path.append("assets/" path);                                      \
-        Font varname = LoadFont(tmp_font_path.c_str());                            \
+        Font varname = LoadFontEx(tmp_font_path.c_str(), 256, NULL, 0);            \
         if (!IsFontValid(varname))                                                 \
             throw std::runtime_error("failed to load font " + std::string(path));
 
@@ -45,17 +51,35 @@ void FontLoader::load() {
     font_name_list.push_back("System");
     font_name_list.push_back("Plex");
     font_name_list.push_back("Monospace");
+
+    std::string directory = FileSystem::home_path;
+    directory.append("assets/enginefonts");
+    for (const auto& file : std::filesystem::directory_iterator(directory)) {
+        tmp_font_path.assign(file.path());
+
+        if (tmp_font_path.size() < 10)
+            continue;
+
+        std::string buffer = tmp_font_path.substr(tmp_font_path.size() - 3, 3);
+        if (buffer != "ttf" && buffer != "otf")
+            continue;
+
+        Font* font = new Font(LoadFontEx(tmp_font_path.c_str(), 256, NULL, 0));
+
+        char* name = tmp_font_path.data();
+        name += directory.size() + 1;
+        name[tmp_font_path.size() - directory.size() - 5] = 0; 
+
+        engine_font_map[name] = font;
+        font_list.push_back(font);
+    }
 }
 void FontLoader::unload() {
-    font_name_list.clear();
-
     for (unsigned int i = 0; i < font_list.size(); i++) {
         UnloadFont(*font_list[i]);
         delete font_list[i];
     }
     font_list.clear();
-
-    hash_font_map.clear();
 }
 
 

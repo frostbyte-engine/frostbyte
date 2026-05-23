@@ -1,0 +1,23 @@
+{
+	"name": "Builder Mono",
+	"faces": [
+		{
+			"name": "Light",
+			"weight": 300,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderMono-Light.otf"
+		},
+		{
+			"name": "Regular",
+			"weight": 400,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderMono-Regular.otf"
+		},
+		{
+			"name": "Bold",
+			"weight": 700,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderMono-Bold.otf"
+		}
+	]
+}

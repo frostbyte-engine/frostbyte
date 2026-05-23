@@ -89,6 +89,7 @@ const char* getFromStringLookup(lua_State* L, int index);
 
 std::string getStackMessage(lua_State* L);
 
+void consoleLog(lua_State* L, Console::Message::Type type, std::string message);
 int fr_print(lua_State* L);
 int fr_warn(lua_State* L);
 

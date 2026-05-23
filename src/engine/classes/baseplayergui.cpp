@@ -2,6 +2,7 @@
 #include "engine/classes/camera.hpp"
 #include "engine/classes/guibutton.hpp"
 #include "engine/classes/userinputservice.hpp"
+#include "engine/datatypes/font.hpp"
 #include "engine/datatypes/rbxscriptsignal.hpp"
 #include "engine/datatypes/udim2.hpp"
 
@@ -190,6 +191,44 @@ void renderGuiObject(lua_State* L, std::shared_ptr<rbxInstance> instance, Vector
             else
                 DrawRotatedRectangleLines(absolute_position, absolute_size, absolute_rotation, border_size, border_color);
                 // DrawRotatedRectangleLines(absolute_position, absolute_size, 0.f, border_size, border_color);
+        }
+
+        if (instance->isA("TextLabel") || instance->isA("TextButton")) {
+            auto& text = getInstanceValue<std::string>(instance, "Text");
+            if (!text.empty()) {
+                if (auto font = getInstanceValue<EngineFont>(instance, "FontFace").font) {
+                    auto size = getInstanceValue<float>(instance, "TextSize");
+                    auto color = getInstanceValue<Color>(instance, "TextColor3");
+
+                    Vector2 position = absolute_position;
+                    Vector2 measured = MeasureTextEx(*font, text.c_str(), size, 1.f);
+                    auto xalignment = getInstanceValue<EnumItem*>(instance, "TextXAlignment");
+                    auto yalignment = getInstanceValue<EnumItem*>(instance, "TextYAlignment");
+
+                    switch (xalignment->value) {
+                        case 0: // Left
+                            break;
+                        case 1: // Right
+                            position.x += absolute_size.x - measured.x;
+                            break;
+                        case 2: // Center
+                            position.x += absolute_size.x / 2.f - measured.x / 2.f;
+                            break;
+                    }
+                    switch (yalignment->value) {
+                        case 0: // Top
+                            break;
+                        case 1: // Center
+                            position.y += absolute_size.y / 2.f - measured.y / 2.f;
+                            break;
+                        case 2: // Bottom
+                            position.y += absolute_size.y / 2.f;
+                            break;
+                    }
+
+                    DrawTextEx(*font, text.c_str(), position, size, 1.f, color);
+                }
+            }
         }
 
         auto shape_lines = getRectangleLinesPro(shape_rect, shape_origin, absolute_rotation);

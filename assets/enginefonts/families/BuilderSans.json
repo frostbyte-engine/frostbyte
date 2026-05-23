@@ -1,0 +1,47 @@
+{
+	"name": "Builder Sans",
+	"faces": [
+		{
+			"name": "Thin",
+			"weight": 100,
+			"style": "normal",
+			"assetId": "rbxassetid://16480735997"
+		},
+		{
+			"name": "Light",
+			"weight": 300,
+			"style": "normal",
+			"assetId": "rbxassetid://16480736281"
+		},
+		{
+			"name": "Regular",
+			"weight": 400,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderSans-Regular.otf"
+		},
+		{
+			"name": "Medium",
+			"weight": 500,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderSans-Medium.otf"
+		},
+		{
+			"name": "Semi Bold",
+			"weight": 600,
+			"style": "normal",
+			"assetId": "rbxassetid://16480736149"
+		},
+		{
+			"name": "Bold",
+			"weight": 700,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderSans-Bold.otf"
+		},
+		{
+			"name": "Extra Bold",
+			"weight": 800,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/BuilderSans-ExtraBold.otf"
+		}
+	]
+}

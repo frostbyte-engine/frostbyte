@@ -18,6 +18,7 @@
 #include "engine/datatypes/colorsequence.hpp"
 #include "engine/datatypes/colorsequencekeypoint.hpp"
 #include "engine/datatypes/content.hpp"
+#include "engine/datatypes/font.hpp"
 #include "engine/datatypes/numberrange.hpp"
 #include "engine/datatypes/numbersequence.hpp"
 #include "engine/datatypes/numbersequencekeypoint.hpp"
@@ -213,11 +214,20 @@ int main(int argc, char** argv) {
 
     open_frostbyte_environment(L);
 
+    SetTraceLogLevel(LOG_WARNING);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(800, 600, "frostbyte");
+    SetExitKey(KEY_NULL);
+    SetTargetFPS(TaskScheduler::target_fps);
+
+    FontLoader::load();
+
     open_filesystemlib(L);
     open_color3lib(L);
     open_colorsequencekeypointlib(L);
     open_colorsequencelib(L);
     open_contentlib(L);
+    open_fontlib(L);
     open_tasklib(L);
     open_tweeninfolib(L);
     open_numberrangelib(L);
@@ -240,14 +250,6 @@ int main(int argc, char** argv) {
     UI_FunctionExplorer_init(L, DataModel::instance);
     ImGuiService_init(L, DataModel::instance);
 
-    SetTraceLogLevel(LOG_WARNING);
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(800, 600, "frostbyte");
-    SetExitKey(KEY_NULL);
-    SetTargetFPS(TaskScheduler::target_fps);
-
-    // load fonts before opening drawentry lib and after InitWindow. This means that we have to push some lua state stuff after window creation
-    FontLoader::load();
     open_drawentrylib(L);
     open_drawingimmediate(L);
 

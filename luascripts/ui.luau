@@ -20,3 +20,5 @@ play_button.Parent = main_frame
 
 play_button.Size = UDim2.new(0, 220, 0, 100)
 play_button.Position = UDim2.new(0.5, -110, 0.5, -50)
+
+play_button.TextSize = 40

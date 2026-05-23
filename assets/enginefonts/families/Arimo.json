@@ -1,0 +1,53 @@
+{
+	"name": "Arimo",
+	"faces": [
+		{
+			"name": "Regular",
+			"weight": 400,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/Arimo-Regular.ttf"
+		},
+		{
+			"name": "Italic",
+			"weight": 400,
+			"style": "italic",
+			"assetId": "rbxassetid://16658203384"
+		},
+		{
+			"name": "Medium",
+			"weight": 500,
+			"style": "normal",
+			"assetId": "rbxassetid://16658205823"
+		},
+		{
+			"name": "Medium Italic",
+			"weight": 500,
+			"style": "italic",
+			"assetId": "rbxassetid://16658204548"
+		},
+		{
+			"name": "Semi Bold",
+			"weight": 600,
+			"style": "normal",
+			"assetId": "rbxassetid://16658204806"
+		},
+		{
+			"name": "Semi Bold Italic",
+			"weight": 600,
+			"style": "italic",
+			"assetId": "rbxassetid://16658205285"
+		},
+		{
+			"name": "Bold",
+			"weight": 700,
+			"style": "normal",
+			"assetId": "rbxasset://fonts/Arimo-Bold.ttf"
+		},
+		{
+			"name": "Bold Italic",
+			"weight": 700,
+			"style": "italic",
+			"assetId": "rbxassetid://16658202951"
+		}
+	]
+}
