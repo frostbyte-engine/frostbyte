@@ -4,6 +4,7 @@
 #include "basedrawing.hpp"
 
 #include "engine/datatypes/color3.hpp"
+#include "engine/datatypes/font.hpp"
 #include "engine/datatypes/rbxscriptsignal.hpp"
 #include "engine/datatypes/vector2.hpp"
 
@@ -147,7 +148,7 @@ namespace drawingimmediate_methods {
         const int arg_offset = outlined * 2;
 
         auto position = lua_checkvector2(L, 1);
-        int font = luaL_checkinteger(L, 2);
+        EngineFont* font = lua_checkfont(L, 2);
         auto text_size = luaL_checknumber(L, 3);
         auto color = *lua_checkcolor(L, 4);
         double opacity = luaL_checknumber(L, 5);
@@ -167,9 +168,9 @@ namespace drawingimmediate_methods {
         color.a = opacity * 255.f;
 
         if (centered)
-            drawingDrawCenteredText(position, FontLoader::font_list[font], text_size, &color, outlined, &outline_color, std::string_view(str, strl));
+            drawingDrawCenteredText(position, font->font, text_size, &color, outlined, &outline_color, std::string_view(str, strl));
         else
-            drawingDrawText(position, FontLoader::font_list[font], text_size, &color, outlined, &outline_color, std::string_view(str, strl));
+            drawingDrawText(position, font->font, text_size, &color, outlined, &outline_color, std::string_view(str, strl));
     }
     static int text(lua_State* L) {
         _text(L, false);
