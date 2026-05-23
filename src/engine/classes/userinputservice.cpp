@@ -394,9 +394,6 @@ void UserInputService::process(lua_State *L, bool anyImGui) {
                     break;
             }
 
-            // key_code.name.assign(key_code_name);
-            // user_input_type.name.assign(user_input_type_name);
-
             key_code = &Enum::enum_map.at("KeyCode").item_map.at(key_code_name);
             user_input_type = &Enum::enum_map.at("UserInputType").item_map.at(user_input_type_name);
         }
@@ -527,6 +524,21 @@ namespace rbxInstance_UserInputService_methods {
 
         return pushVector2(L, UserInputService::mouse_position);
     }
+    static int isKeyDown(lua_State* L) {
+        lua_checkinstance(L, 1, "UserInputService");
+
+        EnumItem* enum_item = lua_checkenumitem(L, 2, "KeyCode");
+        bool is_down = false;
+        for (const auto& pair : raylib_key_to_keycode_map) {
+            if (strequal(pair.second, enum_item->name.c_str())) {
+                is_down = IsKeyDown(pair.first);
+                break;
+            }
+        }
+
+        lua_pushboolean(L, is_down);
+        return 1;
+    }
     static int isMouseButtonPressed(lua_State* L) {
         lua_checkinstance(L, 1, "UserInputService");
 
@@ -552,6 +564,7 @@ void rbxInstance_UserInputService_init() {
     UserInputService::signalMouseMovement(nullptr, InputBegan);
 
     rbxClass::class_map["UserInputService"]->methods["GetMouseLocation"].func = rbxInstance_UserInputService_methods::getMouseLocation;
+    rbxClass::class_map["UserInputService"]->methods["IsKeyDown"].func = rbxInstance_UserInputService_methods::isKeyDown;
     rbxClass::class_map["UserInputService"]->methods["IsMouseButtonPressed"].func = rbxInstance_UserInputService_methods::isMouseButtonPressed;
 }
 
