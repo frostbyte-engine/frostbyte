@@ -121,7 +121,7 @@ namespace Color3_methods {
 };
 
 lua_CFunction getColor3Method(Color* entry, const char* key) {
-    if (strequal(key, "Lerp"))
+    if (strequal(key, "Lerp") || strequal(key, "lerp"))
         return Color3_methods::lerp;
     else if (strequal(key, "ToHSV"))
         return Color3_methods::toHSV;

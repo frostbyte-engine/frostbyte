@@ -5,6 +5,7 @@
 namespace frostbyte {
     namespace userdata {
         #define USERDATA_TYPES         \
+            X(BrickColor)              \
             X(Color3)                  \
             X(ColorSequenceKeypoint)   \
             X(ColorSequence)           \

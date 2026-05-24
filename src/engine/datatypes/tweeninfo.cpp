@@ -43,6 +43,9 @@ static int TweenInfo_new(lua_State* L) {
     return pushTweenInfo(L, tweeninfo);
 }
 
+bool lua_istweeninfo(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::TweenInfo);
+}
 TweenInfo* lua_checktweeninfo(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::TweenInfo);
 

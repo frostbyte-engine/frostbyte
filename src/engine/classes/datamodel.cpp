@@ -5,7 +5,6 @@
 #include "taskscheduler.hpp"
 #include "http.hpp"
 
-#include "lua.h"
 #include "lualib.h"
 
 namespace frostbyte {

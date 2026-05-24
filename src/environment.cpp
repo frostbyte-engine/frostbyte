@@ -417,6 +417,9 @@ void open_frostbyte_environment(lua_State *L) {
     env_expose(rawtostring)
 
     env_expose(wait)
+    // TODO: actual spawn implementation (see the docs)
+    pushFunctionFromLookup(L, fr_task_spawn, "spawn");
+    lua_setglobal(L, "spawn");
 
     env_expose(loadstring)
 

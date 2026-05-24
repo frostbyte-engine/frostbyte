@@ -213,6 +213,37 @@ bool resumeThreadRaw(lua_State* thread) {
         case LUA_ERRRUN: {
             const char* str = lua_tostring(thread, -1);
             std::string msg = str == nullptr ? "unknown" : str;
+
+            msg.push_back('\n');
+
+            // ldblib.cpp
+            lua_Debug ar;
+            for (int i = 1; lua_getinfo(thread, i, "sln", &ar); ++i) {
+                if (strcmp(ar.what, "C") == 0)
+                    continue;
+
+                if (ar.source)
+                    msg.append(ar.short_src);
+
+                if (ar.currentline > 0) {
+                    char line[32]; // manual conversion for performance
+                    char* lineend = line + sizeof(line);
+                    char* lineptr = lineend;
+                    for (unsigned int r = ar.currentline; r > 0; r /= 10)
+                        *--lineptr = '0' + (r % 10);
+
+                    msg.push_back(':');
+                    msg.append(lineptr, lineend - lineptr);
+                }
+
+                if (ar.name) {
+                    msg.append(" function ");
+                    msg.append(ar.name);
+                }
+
+                msg.push_back('\n');
+            }
+
             lua_pop(thread, 1);
             throw std::runtime_error(msg);
         }

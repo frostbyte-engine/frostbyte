@@ -14,6 +14,7 @@
 #include "engine/classes/userinputservice.hpp"
 #include "engine/classes/frostbyte/imguiservice.hpp"
 #include "engine/classes/workspace.hpp"
+#include "engine/datatypes/brickcolor.hpp"
 #include "engine/datatypes/color3.hpp"
 #include "engine/datatypes/colorsequence.hpp"
 #include "engine/datatypes/colorsequencekeypoint.hpp"
@@ -224,6 +225,7 @@ int main(int argc, char** argv) {
     FontLoader::load();
 
     open_filesystemlib(L);
+    open_brickcolorlib(L);
     open_color3lib(L);
     open_colorsequencekeypointlib(L);
     open_colorsequencelib(L);

@@ -232,39 +232,39 @@ void TweenService::pauseTween(lua_State* L, std::shared_ptr<rbxInstance> tween_i
     setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Paused"));
 }
 
-bool TweenService::wouldTweenInterrupt(lua_State* L, std::shared_ptr<rbxInstance> tween_instance) {
-    auto& tween_object = tween_instance_to_object_map.at(tween_instance);
+// bool TweenService::wouldTweenInterrupt(lua_State* L, std::shared_ptr<rbxInstance> tween_instance) {
+//     auto& tween_object = tween_instance_to_object_map.at(tween_instance);
 
-    std::vector<const char*> this_properties;
-    this_properties.reserve(tween_object.tween_list.size());
+//     std::vector<const char*> this_properties;
+//     this_properties.reserve(tween_object.tween_list.size());
 
-    std::transform(
-        tween_object.tween_list.begin(), tween_object.tween_list.end(),
-        std::back_inserter(this_properties),
-        [](const Tween& tween) { return tween.property.c_str(); }
-    );
+//     std::transform(
+//         tween_object.tween_list.begin(), tween_object.tween_list.end(),
+//         std::back_inserter(this_properties),
+//         [](const Tween& tween) { return tween.property.c_str(); }
+//     );
 
-    for (size_t i = 0; i < TweenService::active_tween_list.size(); i++) {
-        auto& other_tween_instance = TweenService::active_tween_list[i];
-        auto& other_tween_object = tween_instance_to_object_map.at(other_tween_instance);
+//     for (size_t i = 0; i < TweenService::active_tween_list.size(); i++) {
+//         auto& other_tween_instance = TweenService::active_tween_list[i];
+//         auto& other_tween_object = tween_instance_to_object_map.at(other_tween_instance);
 
-        if (other_tween_object.instance != tween_object.instance)
-            continue;
-        if (other_tween_instance == tween_instance)
-            continue;
+//         if (other_tween_object.instance != tween_object.instance)
+//             continue;
+//         if (other_tween_instance == tween_instance)
+//             continue;
 
-        for (size_t i2 = 0; i2 < other_tween_object.tween_list.size(); i2++) {
-            auto& other_tween = other_tween_object.tween_list[i2];
-            for (size_t i3 = 0; i3 < this_properties.size(); i3++) {
-                auto& property = this_properties[i3];
-                if (strequal(property, other_tween.property.c_str()))
-                    return true;
-            }
-        }
-    }
+//         for (size_t i2 = 0; i2 < other_tween_object.tween_list.size(); i2++) {
+//             auto& other_tween = other_tween_object.tween_list[i2];
+//             for (size_t i3 = 0; i3 < this_properties.size(); i3++) {
+//                 auto& property = this_properties[i3];
+//                 if (strequal(property, other_tween.property.c_str()))
+//                     return true;
+//             }
+//         }
+//     }
 
-    return false;
-}
+//     return false;
+// }
 
 void TweenService::process(lua_State *L) {
     std::shared_lock lock(TweenService::active_tween_list_mutex);
@@ -301,7 +301,7 @@ void TweenService::process(lua_State *L) {
             tween_object.reset_properties = false;
             for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
                 auto& tween = tween_object.tween_list[i];
-                setInstanceValueVariant(tween_object.instance, L, tween.property.c_str(), tween.original, true);
+                setInstanceValueFromVariant(tween_object.instance, L, tween.property.c_str(), tween.original, true);
             }
         }
 

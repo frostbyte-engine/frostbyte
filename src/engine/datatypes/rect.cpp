@@ -48,6 +48,9 @@ static int Rect_new(lua_State* L) {
     luaL_error(L, "Invalid number of arguments: %d", argc);
 }
 
+bool lua_isrect(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::Rect);
+}
 Rect* lua_checkrect(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::Rect);
 

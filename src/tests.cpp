@@ -168,7 +168,7 @@ namespace frostbyte {
                 feedback_ran_list[i] = true;
 
                 auto& test = test_list[i];
-                if (error == PASS)
+                if (error.find(PASS) != (size_t)-1)
                     Console::TestsConsole.debugf("Test '%s' passed!", test.name);
                 else {
                     fail = true;

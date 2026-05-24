@@ -11,6 +11,18 @@
 
 namespace frostbyte {
 
+Font* getFontFromEnum(lua_State* L, EnumItem* font_enum_item) {
+    const char* name = font_enum_item->name.c_str();
+    if (strequal(name, "SourceSans"))
+        return FontLoader::engine_font_map.at("SourceSansPro-Regular");
+
+    auto entry = FontLoader::engine_font_map.find(name);
+    if (entry == FontLoader::engine_font_map.end())
+        return nullptr;
+
+    return entry->second;
+}
+
 int pushFont(lua_State* L, std::string family, EnumItem* weight, EnumItem* style) {
     EngineFont* engine_font = static_cast<EngineFont*>(lua_newuserdatatagged(L, sizeof(EngineFont), userdata::Font));
     new(engine_font) EngineFont;
@@ -64,6 +76,9 @@ static int Font_fromName(lua_State* L) {
     return pushFont(L, family, weight, style);
 }
 
+bool lua_isfont(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::Font);
+}
 EngineFont* lua_checkfont(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::Font);
 

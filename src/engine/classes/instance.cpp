@@ -11,13 +11,19 @@
 #include "engine/classes/runservice.hpp"
 #include "engine/classes/serviceprovider.hpp"
 #include "engine/classes/startergui.hpp"
+#include "engine/classes/textservice.hpp"
 #include "engine/classes/tweenbase.hpp"
 #include "engine/classes/tweenservice.hpp"
 #include "engine/classes/userinputservice.hpp"
 #include "engine/classes/workspace.hpp"
+#include "engine/datatypes/brickcolor.hpp"
 #include "engine/datatypes/color3.hpp"
+#include "engine/datatypes/colorsequence.hpp"
+#include "engine/datatypes/colorsequencekeypoint.hpp"
 #include "engine/datatypes/enum.hpp"
 #include "engine/datatypes/font.hpp"
+#include "engine/datatypes/numberrange.hpp"
+#include "engine/datatypes/numbersequencekeypoint.hpp"
 #include "engine/datatypes/tweeninfo.hpp"
 #include "engine/datatypes/rbxscriptsignal.hpp"
 #include "engine/datatypes/vector2.hpp"
@@ -170,6 +176,8 @@ void destroyInstance(lua_State* L, std::shared_ptr<rbxInstance> instance, bool d
     rbxClass* c = instance->_class.get();
     while (c) {
         for (auto& property : c->properties) {
+            if (property.second->route)
+                continue;
             pushFunctionFromLookup(L, disconnectAllRBXScriptSignal);
             instance->pushEvent(L, property.first.c_str());
             lua_call(L, 1, 0);
@@ -189,11 +197,62 @@ void destroyInstance(lua_State* L, std::shared_ptr<rbxInstance> instance, bool d
     lua_rawset(L, -3);
     lua_pop(L, 1);
 }
-std::shared_ptr<rbxInstance> rbxInstance::findFirstChild(std::string name) {
+
+
+rbxValueVariant& rbxInstance::getValueVariant(const char* name) {
+    // std::lock_guard lock(instance->values_mutex);
+    return values.at(name).value;
+}
+
+std::shared_ptr<rbxInstance> rbxInstance::findFirstAncestor(const char* name) {
+    auto parent = getValue<std::shared_ptr<rbxInstance>>(PROP_INSTANCE_PARENT);
+    if (!parent)
+        return nullptr;
+
+    if (parent->getValue<std::string>(PROP_INSTANCE_NAME) == name)
+        return parent;
+
+    return parent->findFirstAncestor(name);
+}
+std::shared_ptr<rbxInstance> rbxInstance::findFirstAncestorOfClass(const char* classname) {
+    auto parent = getValue<std::shared_ptr<rbxInstance>>(PROP_INSTANCE_PARENT);
+    if (!parent)
+        return nullptr;
+
+    if (parent->_class->name == classname)
+        return parent;
+
+    return parent->findFirstAncestorOfClass(classname);
+}
+std::shared_ptr<rbxInstance> rbxInstance::findFirstAncestorWhichIsA(const char* classname) {
+    auto parent = getValue<std::shared_ptr<rbxInstance>>(PROP_INSTANCE_PARENT);
+    if (!parent)
+        return nullptr;
+
+    if (parent->isA(classname))
+        return parent;
+
+    return parent->findFirstAncestorWhichIsA(classname);
+}
+std::shared_ptr<rbxInstance> rbxInstance::findFirstChild(const char* name, bool recursive) {
+    // std::lock_guard children_lock(children_mutex);
+
+    for (size_t i = 0; i < children.size(); i++) {
+        auto child = children[i];
+        if (getInstanceValue<std::string>(child, PROP_INSTANCE_NAME) == name)
+            return child;
+        if (recursive) {
+            if (auto result = child->findFirstChild(name, true))
+                return result;
+        }
+    }
+    return nullptr;
+}
+std::shared_ptr<rbxInstance> rbxInstance::findFirstChildWhichIsA(const char* classname) {
     // std::lock_guard children_lock(children_mutex);
 
     for (size_t i = 0; i < children.size(); i++)
-        if (getInstanceValue<std::string>(children[i], PROP_INSTANCE_NAME) == name)
+        if (children[i]->isA(classname))
             return children[i];
     return nullptr;
 }
@@ -240,10 +299,8 @@ rbxValueVariant& getInstanceValueVariant(std::shared_ptr<rbxInstance> instance, 
     return instance->values.at(name).value;
 }
 
-// TODO: we should probably use this in Instance __index if we can
+// TODO: we should probably use this in Instance __newindex if we can
 rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& reference) {
-    assert(!lua_isnil(L, idx));
-
     if (std::holds_alternative<bool>(reference))
         return luaL_checkboolean(L, idx);
     else if (std::holds_alternative<int32_t>(reference)) {
@@ -269,7 +326,9 @@ rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& r
 
         return rbxCallback{ .index = index };
 
-    } else if (std::holds_alternative<Color>(reference))
+    } else if (std::holds_alternative<BrickColor*>(reference))
+        return lua_checkbrickcolor(L, idx);
+    else if (std::holds_alternative<Color>(reference))
         return *lua_checkcolor(L, idx);
     else if (std::holds_alternative<EnumItem*>(reference)) {
         const char* expected_enum = std::get<EnumItem*>(reference)->enum_name.c_str();
@@ -306,8 +365,70 @@ rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& r
     else
         assert(!"UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
 }
+rbxValueVariant luaValueToValueVariant(lua_State* L, int idx) {
+    switch (lua_type(L, idx)) {
+        case LUA_TBOOLEAN:
+            return lua_toboolean(L, idx);
+        case LUA_TNUMBER:
+            return static_cast<double>(lua_tonumber(L, idx));
+        case LUA_TSTRING: {
+            size_t l;
+            const char* str = luaL_tolstring(L, idx, &l);
+            return std::string(str, l);
+        }
+        // else if (std::holds_alternative<rbxCallback>(reference)) {
+        //     luaL_checktype(L, idx, LUA_TFUNCTION);
 
-void setInstanceValueVariant(std::shared_ptr<rbxInstance> instance, lua_State* L, const char* name, rbxValueVariant value, bool dont_report_changed) {
+        //     idx = lua_absindex(L, idx);
+        //     lua_getfield(L, LUA_REGISTRYINDEX, METHODLOOKUP);
+        //     const int index = addToLookup(L, [&L, &idx] {
+        //          lua_pushvalue(L, idx);
+        //     }, false);
+
+        //     return rbxCallback{ .index = index };
+        // 
+        case LUA_TUSERDATA: {
+            if (lua_isbrickcolor(L, idx))
+                return lua_checkbrickcolor(L, idx);
+            else if (lua_iscolor(L, idx))
+                return *lua_checkcolor(L, idx);
+            else if (lua_isenumitem(L, idx)) {
+                const auto value = lua_checkenumitem(L, idx, nullptr);
+                return value;
+
+            } else if (lua_isfont(L, idx))
+                return *lua_checkfont(L, idx);
+            else if (lua_iscolorsequencekeypoint(L, idx))
+                return *lua_checkcolorsequencekeypoint(L, idx);
+            else if (lua_iscolorsequence(L, idx))
+                return *lua_checkcolorsequence(L, idx);
+            else if (lua_isnumberrange(L, idx))
+                return *lua_checknumberrange(L, idx);
+            else if (lua_isnumbersequencekeypoint(L, idx))
+                return *lua_checknumbersequencekeypoint(L, idx);
+            else if (lua_isnumberrange(L, idx))
+                return *lua_checknumbersequence(L, idx);
+            else if (lua_isrect(L, idx))
+                return *lua_checkrect(L, idx);
+            else if (lua_istweeninfo(L, idx))
+                return *lua_checktweeninfo(L, idx);
+            else if (lua_isudim(L, idx))
+                return *lua_checkudim(L, idx);
+            else if (lua_isudim2(L, idx))
+                return *lua_checkudim2(L, idx);
+            else if (lua_isvector2(L, idx))
+                return *lua_checkvector2(L, idx);
+            else if (lua_isvector3(L, idx))
+                return *lua_checkvector3(L, idx);
+
+            else if (lua_isinstance(L, idx))
+                return lua_checkinstance(L, idx);
+        }
+    }
+    assert(!"UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
+}
+
+void setInstanceValueFromVariant(std::shared_ptr<rbxInstance> instance, lua_State* L, const char* name, rbxValueVariant value, bool dont_report_changed) {
     #define handleType(type) if (std::holds_alternative<type>(value))                           \
         setInstanceValue<type>(instance, L, name, std::get<type>(value), dont_report_changed);  \
 
@@ -321,6 +442,7 @@ void setInstanceValueVariant(std::shared_ptr<rbxInstance> instance, lua_State* L
     else handleType(rbxCallback)
     else handleType(std::shared_ptr<rbxInstance>)
 
+    else handleType(BrickColor*)
     else handleType(Color)
     else handleType(EnumItem*)
     else handleType(EngineFont)
@@ -339,6 +461,9 @@ void setInstanceValueVariant(std::shared_ptr<rbxInstance> instance, lua_State* L
     #undef handleType
 }
 
+bool lua_isinstance(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::Instance);
+}
 std::shared_ptr<rbxInstance>& lua_checkinstance(lua_State* L, int narg, const char* class_name) {
     void* ud = userdata::check(L, narg, userdata::Instance);
     void* object = static_cast<void*>(ud);
@@ -387,13 +512,80 @@ namespace rbxInstance_methods {
         destroyInstance(L, instance);
         return 0;
     }
-    static int findFirstChild(lua_State* L) {
+
+    static int findFirstAncestor(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
         const char* name = luaL_checkstring(L, 2);
 
-        lua_pushinstance(L, instance->findFirstChild(name));
+        lua_pushinstance(L, instance->findFirstAncestor(name));
         return 1;
     }
+    static int findFirstAncestorOfClass(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+        const char* classname = luaL_checkstring(L, 2);
+
+        lua_pushinstance(L, instance->findFirstAncestorOfClass(classname));
+        return 1;
+    }
+    static int findFirstAncestorWhichIsA(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+        const char* classname = luaL_checkstring(L, 2);
+
+        lua_pushinstance(L, instance->findFirstAncestorWhichIsA(classname));
+        return 1;
+    }
+    static int findFirstChild(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+        const char* name = luaL_checkstring(L, 2);
+        bool recursive = false;
+
+        if (!lua_isnone(L, 3))
+            recursive = luaL_checkboolean(L, 3);
+
+        lua_pushinstance(L, instance->findFirstChild(name, recursive));
+        return 1;
+    }
+    static int findFirstChildWhichIsA(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+        const char* name = luaL_checkstring(L, 2);
+
+        lua_pushinstance(L, instance->findFirstChildWhichIsA(name));
+        return 1;
+    }
+
+    static int getAttribute(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+        const char* name = luaL_checkstring(L, 2);
+
+        auto it = instance->attributes.find(name);
+        if (it == instance->attributes.end())
+            lua_pushnil(L);
+        else
+            pushInstanceValue(L, it->second);
+
+        return 1;
+    }
+    static int getAttributes(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+
+        lua_createtable(L, 0, instance->attributes.size());
+
+        for (auto& attribute : instance->attributes) {
+            pushInstanceValue(L, attribute.second);
+            lua_rawsetfield(L, -2, attribute.first.c_str());
+        }
+
+        return 1;
+    }
+    static int setAttribute(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+        const char* name = luaL_checkstring(L, 2);
+
+        instance->attributes[name] = luaValueToValueVariant(L, 3);
+
+        return 1;
+    }
+
     static int getChildren(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
 
@@ -490,7 +682,7 @@ namespace rbxInstance_methods {
 
     static int waitForChild(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
-        std::string name = luaL_checkstring(L, 2);
+        const char* name = luaL_checkstring(L, 2);
         const double timeout = luaL_optnumber(L, 3, 5);
 
         auto child = instance->findFirstChild(name);
@@ -528,7 +720,7 @@ namespace rbxInstance_methods {
                 return 0;
             }
 
-            userdata->child = userdata->instance->findFirstChild(userdata->name);
+            userdata->child = userdata->instance->findFirstChild(userdata->name.c_str());
 
             return -2;
         }, ud);
@@ -542,19 +734,88 @@ int rbxInstance__tostring(lua_State* L) {
     return 1;
 }
 
-int pushMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, std::string method_name) {
-    rbxMethod method = instance->methods[method_name];
+rbxMethod& getMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, const char* method_name) {
+    rbxMethod& method = instance->methods[method_name];
     if (method.route)
         method = instance->methods[*method.route];
 
     assert(!method.route);
 
-    if (method.func)
-        return pushFunctionFromLookup(L, method.func, method.name.c_str(), method.cont);
-    else
+    if (!method.func)
         luaL_error(L, "INTERNAL ERROR: TODO implement '%s' on class %s", method.name.c_str(), method._class->name.c_str());
 
-    return 0;
+    return method;
+}
+
+int pushMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, const char* method_name) {
+    auto method = getMethod(L, instance, method_name);
+
+    return pushFunctionFromLookup(L, method.func, method.name.c_str(), method.cont);
+}
+
+int pushInstanceValue(lua_State* L, rbxValueVariant& value) {
+    if (std::holds_alternative<std::monostate>(value))
+        lua_pushnil(L);
+    else {
+        if (std::holds_alternative<bool>(value))
+            lua_pushboolean(L, std::get<bool>(value));
+        else if (std::holds_alternative<int32_t>(value))
+            lua_pushinteger(L, std::get<int32_t>(value));
+        else if (std::holds_alternative<int64_t>(value))
+            lua_pushinteger(L, std::get<int64_t>(value));
+        else if (std::holds_alternative<float>(value))
+            lua_pushnumber(L, std::get<float>(value));
+        else if (std::holds_alternative<double>(value))
+            lua_pushnumber(L, std::get<double>(value));
+        else if (std::holds_alternative<std::string>(value)) {
+            std::string str = std::get<std::string>(value);
+            lua_pushlstring(L, str.c_str(), str.size());
+        } else if (std::holds_alternative<rbxCallback>(value)) {
+            // auto& wrapper = std::get<LuaFunctionWrapper>(value);
+            // if (wrapper.index == -1) {
+            //     lua_pushnil(L);
+            // } else {
+            //     lua_getfield(L, LUA_REGISTRYINDEX, METHODLOOKUP);
+            //     lua_rawgeti(L, -1, wrapper.index);
+            //     lua_remove(L, -2);
+            // }
+        } else if (std::holds_alternative<std::shared_ptr<rbxInstance>>(value))
+            assert(lua_pushinstance(L, std::get<std::shared_ptr<rbxInstance>>(value)) == 1);
+        else if (std::holds_alternative<BrickColor*>(value))
+            assert(pushBrickColor(L, std::get<BrickColor*>(value)->index) == 1);
+        else if (std::holds_alternative<Color>(value))
+            assert(pushColor(L, std::get<Color>(value)) == 1);
+        else if (std::holds_alternative<EnumItem*>(value))
+            assert(pushEnumItem(L, std::get<EnumItem*>(value)) == 1);
+        else if (std::holds_alternative<EngineFont>(value))
+            assert(pushFont(L, std::get<EngineFont>(value)) == 1);
+        else if (std::holds_alternative<TweenInfo>(value))
+            assert(pushTweenInfo(L, std::get<TweenInfo>(value)) == 1);
+        else if (std::holds_alternative<ColorSequenceKeypoint>(value))
+            assert(pushColorSequenceKeypoint(L, std::get<ColorSequenceKeypoint>(value)) == 1);
+        else if (std::holds_alternative<ColorSequence>(value))
+            assert(pushColorSequence(L, std::get<ColorSequence>(value)) == 1);
+        else if (std::holds_alternative<NumberRange>(value))
+            assert(pushNumberRange(L, std::get<NumberRange>(value)) == 1);
+        else if (std::holds_alternative<NumberSequenceKeypoint>(value))
+            assert(pushNumberSequenceKeypoint(L, std::get<NumberSequenceKeypoint>(value)) == 1);
+        else if (std::holds_alternative<NumberSequence>(value))
+            assert(pushNumberSequence(L, std::get<NumberSequence>(value)) == 1);
+        else if (std::holds_alternative<Rect>(value))
+            assert(pushRect(L, std::get<Rect>(value)) == 1);
+        else if (std::holds_alternative<UDim>(value))
+            assert(pushUDim(L, std::get<UDim>(value)) == 1);
+        else if (std::holds_alternative<UDim2>(value))
+            assert(pushUDim2(L, std::get<UDim2>(value)) == 1);
+        else if (std::holds_alternative<Vector2>(value))
+            assert(pushVector2(L, std::get<Vector2>(value)) == 1);
+        else if (std::holds_alternative<Vector3>(value))
+            assert(pushVector3(L, std::get<Vector3>(value)) == 1);
+        else
+            assert("!UNHANDLED ALTERNATIVE FOR INSTANCE VALUE");
+    }
+
+    return 1;
 }
 
 int rbxInstance__index(lua_State* L) {
@@ -593,78 +854,10 @@ int rbxInstance__index(lua_State* L) {
 
     // std::lock_guard values_lock(instance->values_mutex);
 
-    if (std::holds_alternative<std::monostate>(value->value))
-        lua_pushnil(L);
-    else {
-        switch (property->type_category) {
-            case Primitive:
-                if (std::holds_alternative<bool>(value->value))
-                    lua_pushboolean(L, std::get<bool>(value->value));
-                else if (std::holds_alternative<int32_t>(value->value))
-                    lua_pushinteger(L, std::get<int32_t>(value->value));
-                else if (std::holds_alternative<int64_t>(value->value))
-                    lua_pushinteger(L, std::get<int64_t>(value->value));
-                else if (std::holds_alternative<float>(value->value))
-                    lua_pushnumber(L, std::get<float>(value->value));
-                else if (std::holds_alternative<double>(value->value))
-                    lua_pushnumber(L, std::get<double>(value->value));
-                else if (std::holds_alternative<std::string>(value->value)) {
-                    std::string str = std::get<std::string>(value->value);
-                    lua_pushlstring(L, str.c_str(), str.size());
-                } else if (std::holds_alternative<rbxCallback>(value->value)) {
-                    // auto& wrapper = std::get<LuaFunctionWrapper>(value->value);
-                    // if (wrapper.index == -1) {
-                    //     lua_pushnil(L);
-                    // } else {
-                    //     lua_getfield(L, LUA_REGISTRYINDEX, METHODLOOKUP);
-                    //     lua_rawgeti(L, -1, wrapper.index);
-                    //     lua_remove(L, -2);
-                    // }
+    if (std::holds_alternative<rbxCallback>(value->value))
+        luaL_error(L, "%s is a callback member of %s; you can only set the callback value, get is not available", key, class_name.c_str());
 
-                    luaL_error(L, "%s is a callback member of %s; you can only set the callback value, get is not available", key, class_name.c_str());
-                } else
-                    assert(!"UNHANDLED ALTERNATIVE FOR PROPERTY VALUE");
-                break;
-            case DataType: {
-                if (std::holds_alternative<Color>(value->value))
-                    assert(pushColor(L, std::get<Color>(value->value)) == 1);
-                else if (std::holds_alternative<EnumItem*>(value->value))
-                    assert(pushEnumItem(L, std::get<EnumItem*>(value->value)) == 1);
-                else if (std::holds_alternative<EngineFont>(value->value))
-                    assert(pushFont(L, std::get<EngineFont>(value->value)) == 1);
-                else if (std::holds_alternative<TweenInfo>(value->value))
-                    assert(pushTweenInfo(L, std::get<TweenInfo>(value->value)) == 1);
-                else if (std::holds_alternative<ColorSequenceKeypoint>(value->value))
-                    assert(pushColorSequenceKeypoint(L, std::get<ColorSequenceKeypoint>(value->value)) == 1);
-                else if (std::holds_alternative<ColorSequence>(value->value))
-                    assert(pushColorSequence(L, std::get<ColorSequence>(value->value)) == 1);
-                else if (std::holds_alternative<NumberRange>(value->value))
-                    assert(pushNumberRange(L, std::get<NumberRange>(value->value)) == 1);
-                else if (std::holds_alternative<NumberSequenceKeypoint>(value->value))
-                    assert(pushNumberSequenceKeypoint(L, std::get<NumberSequenceKeypoint>(value->value)) == 1);
-                else if (std::holds_alternative<NumberSequence>(value->value))
-                    assert(pushNumberSequence(L, std::get<NumberSequence>(value->value)) == 1);
-                else if (std::holds_alternative<Rect>(value->value))
-                    assert(pushRect(L, std::get<Rect>(value->value)) == 1);
-                else if (std::holds_alternative<UDim>(value->value))
-                    assert(pushUDim(L, std::get<UDim>(value->value)) == 1);
-                else if (std::holds_alternative<UDim2>(value->value))
-                    assert(pushUDim2(L, std::get<UDim2>(value->value)) == 1);
-                else if (std::holds_alternative<Vector2>(value->value))
-                    assert(pushVector2(L, std::get<Vector2>(value->value)) == 1);
-                else if (std::holds_alternative<Vector3>(value->value))
-                    assert(pushVector3(L, std::get<Vector3>(value->value)) == 1);
-                else
-                    assert("!UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
-
-                break;
-            } case Instance:
-                lua_pushinstance(L, std::get<std::shared_ptr<rbxInstance>>(value->value));
-                break;
-        }
-    }
-
-    return 1;
+    return pushInstanceValue(L, value->value);
     }
 
     INVALID_MEMBER:
@@ -839,7 +1032,10 @@ int rbxInstance__newindex(lua_State* L) {
             if (std::holds_alternative<std::monostate>(value->value))
                 // TODO: why did i create this branch lol....
                 ;
-            if (std::holds_alternative<Color>(value->value)) {
+            else if (std::holds_alternative<BrickColor*>(value->value)) {
+                const auto new_value = lua_checkbrickcolor(L, 3);
+                setInstanceValue(instance, L, key, new_value);
+            } else if (std::holds_alternative<Color>(value->value)) {
             // TODO: (for all of these types) use to* not check* and error "Unable to assign property %skey. %stype expected, got %stypename3"
                 const auto new_value = lua_checkcolor(L, 3);
                 setInstanceValue(instance, L, key, *new_value);
@@ -919,21 +1115,14 @@ int rbxInstance__namecall(lua_State* L) {
     const char* namecall = lua_namecallatom(L, nullptr);
     if (!namecall)
         luaL_error(L, "no namecall method!");
-    std::string method_name = namecall;
 
-    if (instance->methods.find(method_name) == instance->methods.end()) {
+    if (instance->methods.find(namecall) == instance->methods.end()) {
         auto name = getInstanceValue<std::string>(instance, PROP_INSTANCE_NAME);
         auto class_name = getInstanceValue<std::string>(instance, PROP_INSTANCE_CLASS_NAME);
         luaL_error(L, "%s is not a valid member of %s \"%s\"", namecall, class_name.c_str(), name.c_str());
     }
 
-    rbxMethod& method = instance->methods[method_name];
-
-    lua_CFunction func = method.func;
-    if (func)
-        return func(L);
-    else
-        luaL_error(L, "INTERNAL ERROR: TODO implement '%s' on class %s", method.name.c_str(), method._class->name.c_str());
+    return getMethod(L, instance, namecall).func(L);
 }
 
 std::shared_ptr<rbxInstance> newInstance(lua_State* L, const char* class_name, std::shared_ptr<rbxInstance> parent) {
@@ -952,6 +1141,8 @@ std::shared_ptr<rbxInstance> newInstance(lua_State* L, const char* class_name, s
     rbxClass* c = _class.get();
     while (c) {
         for (auto& property : c->properties) {
+            if (property.second->route)
+                continue;
             instance->values[property.first] = property.second->default_value;
             // for GetPropertyChangedSignal
             pushNewRBXScriptSignal(L, property.first);
@@ -988,8 +1179,10 @@ std::shared_ptr<rbxInstance> cloneInstance(lua_State* L, std::shared_ptr<rbxInst
 
     rbxClass* c = instance->_class.get();
     while (c) {
-        for (auto& property : c->properties)
-            instance->values[property.first].value = reference->values[property.first].value;
+        for (auto& property : c->properties) {
+            if (!property.second->route)
+                instance->values[property.first].value = reference->values[property.first].value;
+        }
         c = c->superclass.get();
     }
     instance->values[PROP_INSTANCE_PARENT].value = std::shared_ptr<rbxInstance>(nullptr);
@@ -1031,7 +1224,7 @@ std::shared_ptr<rbxInstance> cloneInstance(lua_State* L, std::shared_ptr<rbxInst
             c = pair.second->_class.get();
             while (c) {
                 for (auto& property : c->properties)
-                    if (property.second->type_category == Instance && property.first != PROP_INSTANCE_PARENT) {
+                    if (!property.second->route && property.second->type_category == Instance && property.first != PROP_INSTANCE_PARENT) {
                         auto value = getInstanceValue<std::shared_ptr<rbxInstance>>(pair.second, property.first.c_str());
                         auto it = (*cloned_map)->find(value);
                         if (it != (*cloned_map)->end())
@@ -1292,7 +1485,9 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
                     property->default_value = rbxValue();
 
                     // FIXME: all datatypes
-                    if (type == "Color3")
+                    if (type == "BrickColor")
+                        property->default_value.value = getBrickColor(211);
+                    else if (type == "Color3")
                         property->default_value.value = Color{255, 255, 255, 255};
                     else if (type == "ContentId")
                         property->default_value.value = "";
@@ -1365,7 +1560,14 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
     rbxClass::class_map["Instance"]->methods.at("ClearAllChildren").func = rbxInstance_methods::clearAllChildren;
     rbxClass::class_map["Instance"]->methods.at("Clone").func = rbxInstance_methods::clone;
     rbxClass::class_map["Instance"]->methods.at("Destroy").func = rbxInstance_methods::destroy;
+    rbxClass::class_map["Instance"]->methods.at("FindFirstAncestor").func = rbxInstance_methods::findFirstAncestor;
+    rbxClass::class_map["Instance"]->methods.at("FindFirstAncestorOfClass").func = rbxInstance_methods::findFirstAncestorOfClass;
+    rbxClass::class_map["Instance"]->methods.at("FindFirstAncestorWhichIsA").func = rbxInstance_methods::findFirstAncestorWhichIsA;
     rbxClass::class_map["Instance"]->methods.at("FindFirstChild").func = rbxInstance_methods::findFirstChild;
+    rbxClass::class_map["Instance"]->methods.at("FindFirstChildWhichIsA").func = rbxInstance_methods::findFirstChildWhichIsA;
+    rbxClass::class_map["Instance"]->methods.at("GetAttribute").func = rbxInstance_methods::getAttribute;
+    rbxClass::class_map["Instance"]->methods.at("GetAttributes").func = rbxInstance_methods::getAttributes;
+    rbxClass::class_map["Instance"]->methods.at("SetAttribute").func = rbxInstance_methods::setAttribute;
     rbxClass::class_map["Instance"]->methods.at("GetChildren").func = rbxInstance_methods::getChildren;
     rbxClass::class_map["Instance"]->methods.at("GetDescendants").func = rbxInstance_methods::getDescendants;
     rbxClass::class_map["Instance"]->methods.at("GetFullName").func = rbxInstance_methods::getFullName;
@@ -1442,6 +1644,7 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
     rbxInstance_Camera_init(L, workspace);
     rbxInstance_TweenService_init();
     rbxInstance_TweenBase_init();
+    rbxInstance_TextService_init();
 
     ServiceProvider::createService(L, datamodel, "UserInputService");
 

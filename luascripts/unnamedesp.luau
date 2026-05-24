@@ -237,16 +237,20 @@ function Load()
 			for i, v in pairs(Table) do
 				if typeof(Options[i]) == 'table' and Options[i].Value ~= nil and (typeof(Options[i].Value) == 'boolean' or typeof(Options[i].Value) == 'number') then
 					Options[i].Value = v.Value;
-					pcall(Options[i], v.Value);
+					xpcall(Options[i], warn, v.Value);
 				end
 			end
 
-			if Table.TeamColor then TeamColor = Color3.new(Table.TeamColor.R, Table.TeamColor.G, Table.TeamColor.B) end
-			if Table.EnemyColor then EnemyColor = Color3.new(Table.EnemyColor.R, Table.EnemyColor.G, Table.EnemyColor.B) end
+			if Table.TeamColor then TeamColor = Color3.fromRGB(Table.TeamColor.R, Table.TeamColor.G, Table.TeamColor.B) end
+			if Table.EnemyColor then EnemyColor = Color3.fromRGB(Table.EnemyColor.R, Table.EnemyColor.G, Table.EnemyColor.B) end
 
 			if typeof(Table.MenuKey) == 'string' then Options.MenuKey(Enum.KeyCode[Table.MenuKey], true) end
 			if typeof(Table.ToggleKey) == 'string' then Options.ToggleKey(Enum.KeyCode[Table.ToggleKey], true) end
+		else
+			warn(Table)
 		end
+	else
+		warn(result)
 	end
 end
 
@@ -344,8 +348,6 @@ Options('SaveSettings', 'Save Settings', function()
 
 	writefile(OptionsFile, HttpService:JSONEncode(COptions));
 end, 3);
-
-Load(1);
 
 Options('MenuOpen', nil, true);
 
@@ -1352,6 +1354,8 @@ task.delay(0.1, function()
 	SubMenu:Show(V2New()); -- Create the submenu
 	SubMenu:Hide();
 end);
+
+Load(1);
 
 shared.UESP_InputChangedCon = UserInputService.InputChanged:Connect(function(input)
 	if input.UserInputType.Name == 'MouseMovement' and Options.MenuOpen.Value then

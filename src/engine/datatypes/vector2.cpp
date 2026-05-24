@@ -33,6 +33,9 @@ static int Vector2_new(lua_State* L) {
     return pushVector2(L, x, y);
 }
 
+bool lua_isvector2(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::Vector2);
+}
 Vector2* lua_checkvector2(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::Vector2);
 
@@ -170,6 +173,11 @@ void open_vector2lib(lua_State *L) {
     lua_newtable(L);
 
     setfunctionfield(L, Vector2_new, "new", true);
+
+    pushVector2(L, 0.f, 0.f);
+    lua_setfield(L, -2, "zero");
+    pushVector2(L, 1.f, 1.f);
+    lua_setfield(L, -2, "one");
 
     lua_setglobal(L, "Vector2");
 

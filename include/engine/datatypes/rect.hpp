@@ -13,6 +13,8 @@ struct Rect {
 
 int pushRect(lua_State* L, float minx, float miny, float maxx, float maxy);
 int pushRect(lua_State* L, Rect rect);
+
+bool lua_isrect(lua_State* L, int narg);
 Rect* lua_checkrect(lua_State* L, int narg);
 
 void open_rectlib(lua_State* L);

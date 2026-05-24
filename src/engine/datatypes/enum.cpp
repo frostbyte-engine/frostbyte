@@ -41,6 +41,7 @@ int pushEnumTable(lua_State* L, std::string name) {
 int pushEnum(lua_State* L, std::string name) {
     assert(pushEnumTable(L, name) == 1);
     assert(lua_rawgeti(L, -1, 1) != LUA_TNIL);
+    lua_remove(L, -2);
     return 1;
 }
 
@@ -102,7 +103,7 @@ namespace Enum_methods {
         int i = 1;
         for (auto const& item : _enum->item_map) {
             pushEnumItem(L, _enum->name, item.first);
-            lua_rawseti(L, 2, i++);
+            lua_rawseti(L, -2, i++);
         }
 
         return 1;
@@ -130,7 +131,7 @@ namespace Enum_methods {
         return 1;
     }
 }
-lua_CFunction getEnumMethod(Enum* entry, const char* key) {
+lua_CFunction getEnumMethod(const char* key) {
     if (strequal(key, "GetEnumItems"))
         return Enum_methods::getEnumItems;
     else if (strequal(key, "FromName"))
@@ -145,7 +146,7 @@ static int Enum__index(lua_State* L) {
     Enum* _enum = lua_checkenum(L, 1);
     const char* key = luaL_checkstring(L, 2);
 
-    lua_CFunction func = getEnumMethod(_enum, key);
+    lua_CFunction func = getEnumMethod(key);
     if (func)
         return pushFunctionFromLookup(L, func, key);
 
@@ -156,12 +157,12 @@ static int Enum__index(lua_State* L) {
 }
 
 static int Enum__namecall(lua_State* L) {
-    Enum* _enum = lua_checkenum(L, 1);
+    lua_checkenum(L, 1);
     const char* namecall = lua_namecallatom(L, nullptr);
     if (!namecall)
         luaL_error(L, "no namecall method!");
 
-    lua_CFunction func = getEnumMethod(_enum, namecall);
+    lua_CFunction func = getEnumMethod(namecall);
     if (!func)
         luaL_error(L, "%s is not a valid member of Enum", namecall);
 
@@ -172,29 +173,32 @@ EnumItem* checkEnumItem(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::EnumItem);
     return *static_cast<EnumItem**>(ud);
 }
+bool lua_isenumitem(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::EnumItem);
+}
 EnumItem* lua_checkenumitem(lua_State* L, int narg, const char* expected_enum) {
-    // we need an expected_enum because we also have value and name checks
-    assert(expected_enum);
-    auto& e = Enum::enum_map.at(expected_enum);
+    if (expected_enum) {
+        auto& e = Enum::enum_map.at(expected_enum);
 
-    {
-        int is_num;
-        unsigned i = lua_tointegerx(L, narg, &is_num);
-        if (is_num) {
-            if (EnumItem* enum_item = getEnumItemFromValue(expected_enum, i))
-                return enum_item;
-            luaL_error(L, "Invalid value %d for enum %s", i, expected_enum);
+        {
+            int is_num;
+            unsigned i = lua_tointegerx(L, narg, &is_num);
+            if (is_num) {
+                if (EnumItem* enum_item = getEnumItemFromValue(expected_enum, i))
+                    return enum_item;
+                luaL_error(L, "Invalid value %d for enum %s", i, expected_enum);
+            }
         }
-    }
 
-    {
-        size_t strl;
-        const char* str = lua_tolstring(L, narg, &strl);
-        if (str) {
-            auto result = e.item_map.find(str);
-            if (result == e.item_map.end())
-                luaL_error(L, "Invalid value \"%.*s\" for enum %s", static_cast<int>(strl), str, expected_enum);
-            return &result->second;
+        {
+            size_t strl;
+            const char* str = lua_tolstring(L, narg, &strl);
+            if (str) {
+                auto result = e.item_map.find(str);
+                if (result == e.item_map.end())
+                    luaL_error(L, "Invalid value \"%.*s\" for enum %s", static_cast<int>(strl), str, expected_enum);
+                return &result->second;
+            }
         }
     }
 
@@ -242,14 +246,53 @@ static int Enums__tostring(lua_State* L) {
     return 1;
 }
 
+namespace Enums_methods {
+    static int getEnums(lua_State* L) {
+        lua_checkenums(L, 1);
+
+        lua_createtable(L, Enum::enum_map.size(), 0);
+
+        int i = 0;
+        for (const auto& item : Enum::enum_map) {
+            pushEnum(L, item.first);
+            lua_rawseti(L, -2, ++i);
+        }
+
+        return 1;
+    }
+}; // namespace Enums_methods
+lua_CFunction getEnumsMethod(const char* key) {
+    if strequal(key, "GetEnums")
+        return Enums_methods::getEnums;
+
+    return nullptr;
+}
+
 static int Enums__index(lua_State* L) {
     lua_checkenums(L, 1);
     const char* key = lua_tostring(L, 2);
+
+    lua_CFunction func = getEnumsMethod(key);
+    if (func)
+        return pushFunctionFromLookup(L, func, key);
 
     if (Enum::enum_map.find(key) == Enum::enum_map.end())
         luaL_error(L, "%s is not a valid member of \"Enum\"", key);
 
     return pushEnum(L, key);
+}
+
+static int Enums__namecall(lua_State* L) {
+    lua_checkenums(L, 1);
+    const char* namecall = lua_namecallatom(L, nullptr);
+    if (!namecall)
+        luaL_error(L, "no namecall method!");
+
+    lua_CFunction func = getEnumsMethod(namecall);
+    if (!func)
+        luaL_error(L, "%s is not a valid member of Enums", namecall);
+
+    return func(L);
 }
 
 void setup_enums(lua_State* L) {
@@ -264,8 +307,7 @@ void setup_enums(lua_State* L) {
     userdata::newClassMetatable(L, userdata::Enums);
     setfunctionfield(L, Enums__tostring, "__tostring", nullptr);
     setfunctionfield(L, Enums__index, "__index", nullptr);
-    // TODO: Enums methods
-    // setfunctionfield(L, Enums__namecall, "__namecall", nullptr);
+    setfunctionfield(L, Enums__namecall, "__namecall", nullptr);
 
     lua_setmetatable(L, -2);
 

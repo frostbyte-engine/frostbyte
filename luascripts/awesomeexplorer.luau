@@ -323,7 +323,7 @@ local function main()
 		local oldSize = treeFrame.Size
 		treeFrame.Size = UDim2.new(1,(scrollV.Gui.Visible and -16 or 0),1,(scrollH.Gui.Visible and -39 or -23))
 		if oldSize ~= treeFrame.Size then
-			Explorer.UpdateView()
+			-- Explorer.UpdateView()
 		else
 			scrollV:Update()
 			scrollH:Update()
@@ -2270,7 +2270,7 @@ local function main()
 	local checkboxes,propCons = {},{}
 	local table,string = table,string
 	local getPropChangedSignal = game.GetPropertyChangedSignal
-	local getAttributeChangedSignal = game.GetAttributeChangedSignal
+	-- local getAttributeChangedSignal = game.GetAttributeChangedSignal
 	local isa = game.IsA
 	local getAttribute = game.GetAttribute
 	local setAttribute = game.SetAttribute
@@ -2732,7 +2732,7 @@ local function main()
 		local oldSize = propsFrame.Size
 		propsFrame.Size = UDim2.new(1,(scrollV.Gui.Visible and -16 or 0),1,(scrollH.Gui.Visible and -39 or -23))
 		if oldSize ~= propsFrame.Size then
-			Properties.UpdateView()
+			-- Properties.UpdateView()
 		else
 			scrollV:Update()
 			scrollH:Update()
@@ -3720,9 +3720,9 @@ local function main()
 						Properties.DisplayProp(prop,i)
 						if propObj then
 							if prop.IsAttribute then
-								propCons[#propCons+1] = getAttributeChangedSignal(propObj,prop.AttributeName):Connect(function()
-									Properties.DisplayProp(prop,i)
-								end)
+								-- propCons[#propCons+1] = getAttributeChangedSignal(propObj,prop.AttributeName):Connect(function()
+								-- 	Properties.DisplayProp(prop,i)
+								-- end)
 							else
 								propCons[#propCons+1] = getPropChangedSignal(propObj,propName):Connect(function()
 									Properties.DisplayProp(prop,i)
@@ -7756,7 +7756,7 @@ local function main()
 			local oldOffsets = self.FrameOffsets
 			self.FrameOffsets = Vector2.new(scrollV.Gui.Visible and -16 or 0, scrollH.Gui.Visible and -16 or 0)
 			if oldOffsets ~= self.FrameOffsets then
-				self:UpdateView()
+				-- self:UpdateView()
 			else
 				scrollV:ScrollTo(self.ViewY,true)
 				scrollH:ScrollTo(self.ViewX,true)

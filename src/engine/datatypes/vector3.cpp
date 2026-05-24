@@ -34,6 +34,9 @@ static int Vector3_new(lua_State* L) {
     return pushVector3(L, x, y, z);
 }
 
+bool lua_isvector3(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::Vector3);
+}
 Vector3* lua_checkvector3(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::Vector3);
 

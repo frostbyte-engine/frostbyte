@@ -65,6 +65,9 @@ static int UDim2_fromScale(lua_State* L) {
     return pushUDim2(L, x, y);
 }
 
+bool lua_isudim2(lua_State* L, int narg) {
+    return userdata::is(L, narg, userdata::UDim2);
+}
 UDim2* lua_checkudim2(lua_State* L, int narg) {
     void* ud = userdata::check(L, narg, userdata::UDim2);
 

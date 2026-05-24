@@ -14,6 +14,8 @@ struct TweenInfo {
 };
 
 int pushTweenInfo(lua_State* L, TweenInfo tweeninfo);
+
+bool lua_istweeninfo(lua_State* L, int narg);
 TweenInfo* lua_checktweeninfo(lua_State* L, int narg);
 
 void open_tweeninfolib(lua_State* L);

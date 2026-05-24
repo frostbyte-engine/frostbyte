@@ -46,7 +46,7 @@ public:
     static void cancelTween(lua_State* L, std::shared_ptr<rbxInstance> tween_instance);
     static void pauseTween(lua_State* L, std::shared_ptr<rbxInstance> tween_instance);
 
-    static bool wouldTweenInterrupt(lua_State* L, std::shared_ptr<rbxInstance> tween_instance);
+    // static bool wouldTweenInterrupt(lua_State* L, std::shared_ptr<rbxInstance> tween_instance);
 
     static void process(lua_State* L);
 };
