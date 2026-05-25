@@ -435,6 +435,10 @@ void UserInputService::process(lua_State *L, bool anyImGui) {
                     pos--;
                     string.erase(string.begin() + pos - 1);
                 }
+            } else if (strequal(keycode, "Delete") && string.size()) {
+                int& pos = getInstanceValue<int>(textbox, "CursorPosition");
+                if (pos <= static_cast<int>(string.size()))
+                    string.erase(string.begin() + pos - 1);
             } else if (strequal(keycode, "Home"))
                 getInstanceValue<int>(textbox, "CursorPosition") = 1;
             else if (strequal(keycode, "End"))
