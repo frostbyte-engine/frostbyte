@@ -19,6 +19,10 @@ public:
     static Vector2 mouse_delta;
 
     static void signalMouseMovement(std::shared_ptr<rbxInstance> instance, InputState type);
+    static void releaseTextBoxFocus(lua_State* L, std::shared_ptr<rbxInstance> textbox, bool enter_pressed);
+    static void captureTextBoxFocus(lua_State* L, std::shared_ptr<rbxInstance> textbox);
+    static bool isTextBoxFocused(std::shared_ptr<rbxInstance> textbox);
+
     static void process(lua_State* L, bool anyImGui);
 };
 

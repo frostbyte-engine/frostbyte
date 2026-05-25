@@ -11,6 +11,7 @@
 #include "engine/classes/runservice.hpp"
 #include "engine/classes/serviceprovider.hpp"
 #include "engine/classes/startergui.hpp"
+#include "engine/classes/textbox.hpp"
 #include "engine/classes/textservice.hpp"
 #include "engine/classes/tweenbase.hpp"
 #include "engine/classes/tweenservice.hpp"
@@ -493,6 +494,26 @@ std::shared_ptr<rbxInstance> lua_optinstance(lua_State* L, int narg, const char*
     return lua_checkinstance(L, narg, class_name);
 }
 
+int getAttributeChangedSignal(lua_State* L, std::shared_ptr<rbxInstance> instance, const char* rawname) {
+    std::string name = "_Attribute_";
+    name.append(rawname);
+
+    lua_getfield(L, LUA_REGISTRYINDEX, SIGNALLOOKUP);
+    lua_pushlightuserdata(L, instance.get());
+    lua_rawget(L, -2);
+    lua_remove(L, -2);
+
+    lua_rawgetfield(L, -1, name.c_str());
+    if (lua_isnil(L, -1)) {
+        lua_pop(L, 1);
+        pushNewRBXScriptSignal(L, name);
+        lua_pushvalue(L, -1);
+        lua_rawsetfield(L, -3, name.c_str());
+    }
+    lua_remove(L, -2);
+
+    return 1;
+}
 namespace rbxInstance_methods {
     static int clearAllChildren(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
@@ -565,6 +586,11 @@ namespace rbxInstance_methods {
 
         return 1;
     }
+    static int getAttributeChangedSignal(lua_State* L) {
+        auto instance = lua_checkinstance(L, 1);
+
+        return getAttributeChangedSignal(L, instance, luaL_checkstring(L, 2));
+    }
     static int getAttributes(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
 
@@ -579,9 +605,16 @@ namespace rbxInstance_methods {
     }
     static int setAttribute(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
-        const char* name = luaL_checkstring(L, 2);
+        const char* rawname = luaL_checkstring(L, 2);
 
-        instance->attributes[name] = luaValueToValueVariant(L, 3);
+        // FIXME: check duplicate
+        instance->attributes[rawname] = luaValueToValueVariant(L, 3);
+
+        pushFunctionFromLookup(L, fireRBXScriptSignal);
+
+        getAttributeChangedSignal(L, instance, rawname);
+
+        lua_call(L, 1, 0);
 
         return 1;
     }
@@ -734,15 +767,15 @@ int rbxInstance__tostring(lua_State* L) {
     return 1;
 }
 
-rbxMethod& getMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, const char* method_name) {
-    rbxMethod& method = instance->methods[method_name];
-    if (method.route)
-        method = instance->methods[*method.route];
+rbxMethod* getMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, const char* method_name) {
+    rbxMethod* method = &instance->methods[method_name];
+    if (method->route)
+        method = &instance->methods[*method->route];
 
-    assert(!method.route);
+    assert(!method->route);
 
-    if (!method.func)
-        luaL_error(L, "INTERNAL ERROR: TODO implement '%s' on class %s", method.name.c_str(), method._class->name.c_str());
+    if (!method->func)
+        luaL_error(L, "INTERNAL ERROR: TODO implement '%s' on class %s", method->name.c_str(), method->_class->name.c_str());
 
     return method;
 }
@@ -750,7 +783,7 @@ rbxMethod& getMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, const
 int pushMethod(lua_State* L, std::shared_ptr<rbxInstance>& instance, const char* method_name) {
     auto method = getMethod(L, instance, method_name);
 
-    return pushFunctionFromLookup(L, method.func, method.name.c_str(), method.cont);
+    return pushFunctionFromLookup(L, method->func, method->name.c_str(), method->cont);
 }
 
 int pushInstanceValue(lua_State* L, rbxValueVariant& value) {
@@ -1122,7 +1155,7 @@ int rbxInstance__namecall(lua_State* L) {
         luaL_error(L, "%s is not a valid member of %s \"%s\"", namecall, class_name.c_str(), name.c_str());
     }
 
-    return getMethod(L, instance, namecall).func(L);
+    return getMethod(L, instance, namecall)->func(L);
 }
 
 std::shared_ptr<rbxInstance> newInstance(lua_State* L, const char* class_name, std::shared_ptr<rbxInstance> parent) {
@@ -1566,6 +1599,7 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
     rbxClass::class_map["Instance"]->methods.at("FindFirstChild").func = rbxInstance_methods::findFirstChild;
     rbxClass::class_map["Instance"]->methods.at("FindFirstChildWhichIsA").func = rbxInstance_methods::findFirstChildWhichIsA;
     rbxClass::class_map["Instance"]->methods.at("GetAttribute").func = rbxInstance_methods::getAttribute;
+    rbxClass::class_map["Instance"]->methods.at("GetAttributeChangedSignal").func = rbxInstance_methods::getAttributeChangedSignal;
     rbxClass::class_map["Instance"]->methods.at("GetAttributes").func = rbxInstance_methods::getAttributes;
     rbxClass::class_map["Instance"]->methods.at("SetAttribute").func = rbxInstance_methods::setAttribute;
     rbxClass::class_map["Instance"]->methods.at("GetChildren").func = rbxInstance_methods::getChildren;
@@ -1626,6 +1660,10 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
 
     rbxInstance_LayerCollector_init();
     rbxInstance_GuiObject_init();
+    rbxInstance_TextBox_init();
+
+    rbxInstance_BasePlayerGui_init(L);
+    rbxInstance_StarterGui_init(L);
 
     auto coregui = ServiceProvider::getService(L, datamodel, "CoreGui");
     hiddenui = cloneInstance(L, coregui);
@@ -1634,8 +1672,7 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
 
     rbxInstance_CoreGui_setup(L, coregui);
 
-    rbxInstance_BasePlayerGui_init(L, { coregui, hiddenui });
-    rbxInstance_StarterGui_init(L);
+    rbxInstance_BasePlayerGui_addStorageList({ coregui, hiddenui });
 
     rbxInstance_UserInputService_init();
     rbxInstance_RunService_init(L);

@@ -1,6 +1,7 @@
 #include "engine/classes/baseplayergui.hpp"
 #include "engine/classes/camera.hpp"
 #include "engine/classes/guibutton.hpp"
+#include "engine/classes/instance.hpp"
 #include "engine/classes/userinputservice.hpp"
 #include "engine/datatypes/font.hpp"
 #include "engine/datatypes/rbxscriptsignal.hpp"
@@ -8,6 +9,8 @@
 
 #include "common.hpp"
 
+#include "lua.h"
+#include "lualib.h"
 #include "raylib.h"
 #include "rlgl.h"
 
@@ -79,8 +82,15 @@ void DrawRotatedRectangleLines(Vector2 position, Vector2 size, float rotation, f
 std::weak_ptr<rbxInstance> clickable_instance;
 std::weak_ptr<rbxInstance> next_clickable_instance;
 
+std::weak_ptr<rbxInstance> topmost_instance;
+std::weak_ptr<rbxInstance> next_topmost_instance;
+
 std::weak_ptr<rbxInstance> getClickableGuiObject() {
     return clickable_instance;
+}
+
+std::weak_ptr<rbxInstance> getTopMostGuiObject() {
+    return topmost_instance;
 }
 
 std::vector<std::weak_ptr<rbxInstance>> gui_objects_hovered;
@@ -93,6 +103,7 @@ std::vector<std::weak_ptr<rbxInstance>> getGuiObjectsHovered() {
 std::vector<std::shared_ptr<rbxInstance>> mouse_enter_list;
 std::vector<std::shared_ptr<rbxInstance>> mouse_leave_list;
 std::map<rbxInstance*, bool> mouse_over_map;
+std::map<std::shared_ptr<rbxInstance>, Rectangle> bounds_map;
 
 // NOTE: expects Parent
 bool isStorageChild(std::shared_ptr<rbxInstance> instance) {
@@ -110,6 +121,55 @@ struct GuiObjectBorder {
     int border_size;
     Color border_color;
 };
+
+void renderText(std::shared_ptr<rbxInstance> instance, const char* text, Vector2 position, Vector2 rectangle_size, Color color, bool caret = false) {
+    auto font = getInstanceValue<EngineFont>(instance, "FontFace").font;
+    if (!font)
+        return;
+
+    auto size = getInstanceValue<float>(instance, "TextSize");
+
+    Vector2 measured = MeasureTextEx(*font, text, size, 1.f);
+    auto xalignment = getInstanceValue<EnumItem*>(instance, "TextXAlignment");
+    auto yalignment = getInstanceValue<EnumItem*>(instance, "TextYAlignment");
+
+    switch (xalignment->value) {
+        case 0: // Left
+            break;
+        case 1: // Right
+            position.x += rectangle_size.x - measured.x;
+            break;
+        case 2: // Center
+            position.x += rectangle_size.x / 2.f - measured.x / 2.f;
+            break;
+    }
+    switch (yalignment->value) {
+        case 0: // Top
+            break;
+        case 1: // Center
+            position.y += rectangle_size.y / 2.f - measured.y / 2.f;
+            break;
+        case 2: // Bottom
+            position.y += rectangle_size.y / 2.f;
+            break;
+    }
+
+    DrawTextEx(*font, text, position, size, 1.f, color);
+
+    if (caret) {
+        char* text_writable = const_cast<char*>(text);
+        int cursor_pos = getInstanceValue<int>(instance, "CursorPosition") - 1;
+
+        char old_ch = text_writable[cursor_pos];
+        text_writable[cursor_pos] = '\0';
+
+        Vector2 cursor_measured = MeasureTextEx(*font, text, size, 1.f);
+
+        text_writable[cursor_pos] = old_ch;
+
+        DrawLine(position.x + cursor_measured.x, position.y, position.x + cursor_measured.x, position.y + measured.y, DARKGRAY);
+    }
+}
 
 void renderGuiObject(lua_State* L, std::shared_ptr<rbxInstance> instance, Vector2 mouse, bool anyImGui) {
     bool clips_descendants = false;
@@ -150,6 +210,13 @@ void renderGuiObject(lua_State* L, std::shared_ptr<rbxInstance> instance, Vector
         Vector2 absolute_size{
             parent_absolute_size.x * size.x.scale + size.x.offset,
             parent_absolute_size.y * size.y.scale + size.y.offset
+        };
+
+        bounds_map[instance] = Rectangle{
+            .x = absolute_position.x,
+            .y = absolute_position.y,
+            .width = absolute_size.x,
+            .height = absolute_size.y
         };
 
         // float absolute_rotation = parent_absolute_rotation + rotation;
@@ -197,42 +264,21 @@ void renderGuiObject(lua_State* L, std::shared_ptr<rbxInstance> instance, Vector
                 // DrawRotatedRectangleLines(absolute_position, absolute_size, 0.f, border_size, border_color);
         }
 
-        if (instance->isA("TextLabel") || instance->isA("TextButton")) {
+        const bool is_textbox = instance->isA("TextBox");
+
+        bool text_rendered = false;
+        if (instance->isA("TextLabel") || instance->isA("TextButton") || is_textbox) {
             auto& text = getInstanceValue<std::string>(instance, "Text");
             if (!text.empty()) {
-                if (auto font = getInstanceValue<EngineFont>(instance, "FontFace").font) {
-                    auto size = getInstanceValue<float>(instance, "TextSize");
-                    auto color = getInstanceValue<Color>(instance, "TextColor3");
-
-                    Vector2 position = absolute_position;
-                    Vector2 measured = MeasureTextEx(*font, text.c_str(), size, 1.f);
-                    auto xalignment = getInstanceValue<EnumItem*>(instance, "TextXAlignment");
-                    auto yalignment = getInstanceValue<EnumItem*>(instance, "TextYAlignment");
-
-                    switch (xalignment->value) {
-                        case 0: // Left
-                            break;
-                        case 1: // Right
-                            position.x += absolute_size.x - measured.x;
-                            break;
-                        case 2: // Center
-                            position.x += absolute_size.x / 2.f - measured.x / 2.f;
-                            break;
-                    }
-                    switch (yalignment->value) {
-                        case 0: // Top
-                            break;
-                        case 1: // Center
-                            position.y += absolute_size.y / 2.f - measured.y / 2.f;
-                            break;
-                        case 2: // Bottom
-                            position.y += absolute_size.y / 2.f;
-                            break;
-                    }
-
-                    DrawTextEx(*font, text.c_str(), position, size, 1.f, color);
-                }
+                text_rendered = true; // NOTE: yes the text might not be rendered due to an invalid font, but this variable is used to render PlaceholderText so this is intended
+                renderText(instance, text.c_str(), absolute_position, absolute_size, getInstanceValue<Color>(instance, "TextColor3"), is_textbox && UserInputService::isTextBoxFocused(instance));
             }
+        }
+
+        if (is_textbox && !text_rendered) {
+            auto& text = getInstanceValue<std::string>(instance, "PlaceholderText");
+            if (!text.empty())
+                renderText(instance, text.c_str(), absolute_position, absolute_size, getInstanceValue<Color>(instance, "PlaceholderColor3"));
         }
 
         auto shape_lines = getRectangleLinesPro(shape_rect, shape_origin, absolute_rotation);
@@ -244,6 +290,7 @@ void renderGuiObject(lua_State* L, std::shared_ptr<rbxInstance> instance, Vector
             next_gui_objects_hovered.push_back(instance);
             if (instance->isA("GuiButton"))
                 next_clickable_instance = instance;
+            next_topmost_instance = instance;
         }
 
         if (is_mouse_over != mouse_over_state)
@@ -324,10 +371,13 @@ void fireMouseMovementSignal(lua_State* L, Vector2& mouse, std::shared_ptr<rbxIn
 
 void rbxInstance_BasePlayerGui_render(lua_State *L, bool anyImGui) {
     next_clickable_instance.reset();
+    next_topmost_instance.reset();
     next_gui_objects_hovered.clear();
 
     mouse_enter_list.clear();
     mouse_leave_list.clear();
+
+    bounds_map.clear();
 
     // generate render list
 
@@ -348,6 +398,7 @@ void rbxInstance_BasePlayerGui_render(lua_State *L, bool anyImGui) {
         renderGuiObject(L, render_list[i], mouse, anyImGui);
 
     clickable_instance = next_clickable_instance;
+    topmost_instance = next_topmost_instance;
     gui_objects_hovered = next_gui_objects_hovered;
 
     // handle some signals (the rest are handled in UserInputService)
@@ -367,8 +418,43 @@ void rbxInstance_BasePlayerGui_render(lua_State *L, bool anyImGui) {
     }
 }
 
-void rbxInstance_BasePlayerGui_init(lua_State *L, std::initializer_list<std::shared_ptr<rbxInstance>> initial_gui_storage_list) {
+namespace rbxInstance_BasePlayerGui_methods {
+    static int getGuiObjectsAtPosition(lua_State* L) {
+        lua_checkinstance(L, 1, "BasePlayerGui");
+
+        Vector2 position { 
+            static_cast<float>(luaL_checknumber(L, 2)),
+            static_cast<float>(luaL_checknumber(L, 3)),
+        };
+
+        static std::vector<std::pair<std::shared_ptr<rbxInstance>, Rectangle>> list;
+        list.clear();
+        list.insert(list.begin(), bounds_map.begin(), bounds_map.end());
+
+        std::reverse(list.begin(), list.end());
+
+        list.erase(std::remove_if(list.begin(), list.end(), [&position] (auto& a) {
+            return !CheckCollisionPointRec(position, a.second);
+        }));
+
+        lua_createtable(L, list.size(), 0);
+
+        for (size_t i = 0; i < list.size(); i++) {
+            lua_pushinstance(L, list[i].first);
+            lua_rawseti(L, -2, i + 1);
+        }
+
+        return 1;
+    }
+}; // namespace rbxInstance_BasePlayerGui_methods
+
+
+void rbxInstance_BasePlayerGui_addStorageList(std::initializer_list<std::shared_ptr<rbxInstance>> initial_gui_storage_list) {
     gui_storage_list.insert(gui_storage_list.end(), initial_gui_storage_list.begin(), initial_gui_storage_list.end());
+}
+
+void rbxInstance_BasePlayerGui_init(lua_State *L) {
+    rbxClass::class_map["BasePlayerGui"]->methods["GetGuiObjectsAtPosition"].func = rbxInstance_BasePlayerGui_methods::getGuiObjectsAtPosition;
 }
 
 };

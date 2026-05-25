@@ -8,8 +8,10 @@ class DataModel {
 public:
     static std::shared_ptr<rbxInstance> instance;
 
+    static bool loaded;
     static bool shutdown;
 
+    static void onLoad(lua_State* L);
     static void onShutdown(lua_State* L);
 };
 

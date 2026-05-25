@@ -282,7 +282,12 @@ void tryResumeThreadRaw(lua_State* thread) {
     } catch (std::exception& e) {
         // TODO: either move killThread after and wrap feedback in another try catch or don't worry about the order (ask if feedback will care if thread was killed or not)
         TaskScheduler::killThread(thread);
-        task->feedback(e.what());
+        try {
+            task->feedback(e.what());
+        } catch (std::exception& e2) {
+            printf("[err] failed to call feedback... here is original exception:\n%s", e.what());
+            printf("[err] and here is why the feedback failed: %s\n", e2.what());
+        }
     }
 }
 

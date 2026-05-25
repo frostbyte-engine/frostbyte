@@ -27,6 +27,8 @@ extern bool menu_function_explorer_open;
 extern bool enable_user_input_service;
 extern bool enable_run_service;
 extern bool enable_tween_service;
+extern bool enable_gui_object_rendering;
+extern bool httpget_synchronous_argument;
 extern bool menu_image_explorer_open;
 extern bool menu_font_explorer_open;
 extern bool menu_table_explorer_open;

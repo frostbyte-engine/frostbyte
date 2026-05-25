@@ -391,6 +391,8 @@ int main(int argc, char** argv) {
     style.Colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.04f, 0.10f, 0.09f, 0.51f);
     }
 
+    DataModel::onLoad(L);
+
     while (!WindowShouldClose() && !DataModel::shutdown) {
         const bool anyImGui = ImGui::IsWindowHovered(ImGuiHoveredFlags_AnyWindow);
         if (enable_user_input_service)
@@ -412,7 +414,8 @@ int main(int argc, char** argv) {
         ClearBackground(DARKGRAY);
 
         // gui object render
-        rbxInstance_BasePlayerGui_render(appL, anyImGui);
+        if (enable_gui_object_rendering)
+            rbxInstance_BasePlayerGui_render(appL, anyImGui);
 
         // lua drawings
         DrawEntry::render();
@@ -456,6 +459,9 @@ int main(int argc, char** argv) {
                 ImGui::MenuItem("Enable UserInputService", nullptr, &enable_user_input_service);
                 ImGui::MenuItem("Enable RunService", nullptr, &enable_run_service);
                 ImGui::MenuItem("Enable TweenService", nullptr, &enable_tween_service);
+                ImGui::MenuItem("Enable GuiObject rendering", nullptr, &enable_gui_object_rendering);
+
+                ImGui::MenuItem("HttpGet synchronous Argument Enabled", nullptr, &httpget_synchronous_argument);
 
                 ImGui::MenuItem("Function Explorer", nullptr, &menu_function_explorer_open);
                 ImGui::MenuItem("Table Explorer", nullptr, &menu_table_explorer_open);
@@ -814,6 +820,7 @@ int main(int argc, char** argv) {
 
             int arg_count = 0;
             try {
+                // FIXME: one time the below code errored (environment fr_wait lambda's lua_pushnumber did), making me think we should do a lua gc cycle before this..
                 arg_count = workload(thread, userdata);
             } catch(std::exception& e) {
                 TaskScheduler::killThread(thread);

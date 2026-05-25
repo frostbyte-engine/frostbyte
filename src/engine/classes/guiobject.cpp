@@ -87,9 +87,9 @@ namespace rbxInstance_GuiObject_methods {
 void rbxInstance_GuiObject_init() {
     auto& this_class = rbxClass::class_map["GuiObject"];
 
-    rbxClass::class_map["GuiObject"]->methods["TweenPosition"].func = rbxInstance_GuiObject_methods::tweenPosition;
-    rbxClass::class_map["GuiObject"]->methods["TweenSize"].func = rbxInstance_GuiObject_methods::tweenSize;
-    rbxClass::class_map["GuiObject"]->methods["TweenSizeAndPosition"].func = rbxInstance_GuiObject_methods::tweenSizeAndPosition;
+    this_class->methods["TweenPosition"].func = rbxInstance_GuiObject_methods::tweenPosition;
+    this_class->methods["TweenSize"].func = rbxInstance_GuiObject_methods::tweenSize;
+    this_class->methods["TweenSizeAndPosition"].func = rbxInstance_GuiObject_methods::tweenSizeAndPosition;
 
     this_class->constructor = [](lua_State* L, std::shared_ptr<rbxInstance> instance) {
         setInstanceValue(instance, L, "BackgroundColor3", Color { 163, 162, 165, 255 }, true);
