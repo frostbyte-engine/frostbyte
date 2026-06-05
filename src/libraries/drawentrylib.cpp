@@ -3,6 +3,7 @@
 #include "basedrawing.hpp"
 #include "common.hpp"
 #include "engine/datatypes/font.hpp"
+#include "engine/datatypes/vector3.hpp"
 #include "userdata.hpp"
 
 #include "engine/classes/camera.hpp"
@@ -318,6 +319,10 @@ int DrawEntry_clear(lua_State* L) {
 
     return 0;
 }
+// NOTE: this is a synv3 function... does Roblox have a fully initialized scripting engine before its rendering is fully initialized?? that is not how fakeroblox works at all lol
+static int DrawEntry_waitForRenderer(lua_State* L) {
+    return 0;
+}
 
 #undef DrawEntry_new_branch
 
@@ -579,6 +584,13 @@ int DrawEntry__newindex(lua_State* L) {
         auto alpha = entry->color.a;
         entry->color = *lua_checkcolor(L, 3);
         entry->color.a = alpha;
+    } else if (strequal(key, "ColorVec3")) {
+        auto alpha = entry->color.a;
+        auto vec = lua_checkvector3(L, 3);
+        entry->color.r = vec->x;
+        entry->color.g = vec->y;
+        entry->color.b = vec->z;
+        entry->color.a = alpha;
     } else {
         switch (entry->type) {
             case DrawEntry::DrawTypeLine: {
@@ -793,8 +805,9 @@ void open_drawentrylib(lua_State *L) {
     lua_newtable(L);
 
     setfunctionfield(L, DrawEntry_new, "new");
-    setfunctionfield(L, DrawEntry_getObjects, "GetObjects");
     setfunctionfield(L, DrawEntry_clear, "Clear");
+    setfunctionfield(L, DrawEntry_getObjects, "GetObjects");
+    setfunctionfield(L, DrawEntry_waitForRenderer, "WaitForRenderer");
 
     lua_createtable(L, FontLoader::font_count, 0);
 

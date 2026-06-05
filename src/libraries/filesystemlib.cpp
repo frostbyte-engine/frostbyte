@@ -4,6 +4,7 @@
 #include "lua.h"
 #include "Luau/Compiler.h"
 #include "lualib.h"
+#include "taskscheduler.hpp"
 
 #include <cstring>
 #include <filesystem>
@@ -44,6 +45,36 @@ static int fr_appendfile(lua_State* L) {
 
     return 0;
 }
+static int fr_appendfileasync(lua_State* L) {
+    std::string relative_path = luaL_checkstring(L, 1);
+    size_t datal;
+    const char* dataraw = luaL_checklstring(L, 2, &datal);
+    std::string data(dataraw, datal);
+
+    checkPath(L, relative_path.c_str());
+
+    std::string path = FileSystem::workspace_path;
+    path.append(relative_path);
+
+    return TaskScheduler::yieldForWork(L, [path, relative_path, data] (Yield yield) {
+        std::ofstream file;
+
+        file.open(path, std::ios::app);
+
+        if (!file.is_open())
+            yield.finish([relative_path] (lua_State* L) {
+                lua_pushfstring(L, "failed to open file '%s'", relative_path.c_str());
+                return YIELD_ERROR;
+            });
+
+        file << data;
+        file.close();
+
+        yield.finish([](lua_State* L) {
+            return 0;
+        });
+    }, true);
+}
 static int fr_readfile(lua_State* L) {
     const char* relative_path = luaL_checkstring(L, 1);
 
@@ -59,6 +90,26 @@ static int fr_readfile(lua_State* L) {
 
     lua_pushlstring(L, content.c_str(), content.size());
     return 1;
+}
+static int fr_readfileasync(lua_State* L) {
+    std::string relative_path = luaL_checkstring(L, 1);
+
+    checkPath(L, relative_path.c_str());
+
+    std::string path = FileSystem::workspace_path;
+    path.append(relative_path);
+    if (!std::filesystem::exists(path))
+        luaL_error(L, "failed to open file '%s'", relative_path.c_str());
+
+    return TaskScheduler::yieldForWork(L, [relative_path, path] (Yield yield) {
+        std::ifstream file(path, std::ios::binary);
+        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+        yield.finish([content] (lua_State* L) {
+            lua_pushlstring(L, content.c_str(), content.size());
+            return 1;
+        });
+    }, true);
 }
 static int fr_writefile(lua_State* L) {
     const char* relative_path = luaL_checkstring(L, 1);
@@ -80,6 +131,36 @@ static int fr_writefile(lua_State* L) {
     file.close();
 
     return 0;
+}
+static int fr_writefileasync(lua_State* L) {
+    std::string relative_path = luaL_checkstring(L, 1);
+    size_t datal;
+    const char* dataraw = luaL_checklstring(L, 2, &datal);
+    std::string data(dataraw, datal);
+
+    checkPath(L, relative_path.c_str());
+
+    std::string path = FileSystem::workspace_path;
+    path.append(relative_path);
+
+    return TaskScheduler::yieldForWork(L, [path, relative_path, data] (Yield yield) {
+        std::ofstream file;
+
+        file.open(path, std::ios::out);
+
+        if (!file.is_open())
+            yield.finish([relative_path] (lua_State* L) {
+                lua_pushfstring(L, "failed to open file '%s'", relative_path.c_str());
+                return YIELD_ERROR;
+            });
+
+        file << data;
+        file.close();
+
+        yield.finish([](lua_State* L) {
+            return 0;
+        });
+    }, true);
 }
 
 static int fr_makefolder(lua_State* L) {
@@ -214,8 +295,11 @@ static int fr_loadfile(lua_State* L) {
 
 void open_filesystemlib(lua_State* L) {
     env_expose(appendfile)
+    env_expose(appendfileasync)
     env_expose(readfile)
+    env_expose(readfileasync)
     env_expose(writefile)
+    env_expose(writefileasync)
     env_expose(makefolder)
     env_expose(isfile)
     env_expose(isfolder)

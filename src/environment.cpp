@@ -258,6 +258,11 @@ int fr_setrawmetatable(lua_State* L) {
     return 0;
 }
 
+static int fr_newtable(lua_State* L) {
+    lua_createtable(L, luaL_checkinteger(L, 2), luaL_checkinteger(L, 3));
+    return 1;
+}
+
 static int fr_setsafeenv(lua_State* L) {
     luaL_checktype(L, 1, LUA_TTABLE);
     const bool enabled = luaL_checkboolean(L, 2);
@@ -450,6 +455,8 @@ void open_frostbyte_environment(lua_State *L) {
 
     env_expose(getrawmetatable)
     env_expose(setrawmetatable)
+
+    env_expose(newtable)
 
     env_expose(iswindowactive)
     env_alias(iswindowactive, isrbxactive)

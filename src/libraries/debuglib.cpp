@@ -98,13 +98,17 @@ int fr_debug_validlevel(lua_State* L) {
     int level = luaL_checkinteger(L, 1);
     lua_State* thread = optionalThread(L, 2);
 
-    CallInfo* ci = thread->base_ci;
-    CallInfo* end_ci = thread->ci;
-
-    int max = end_ci - ci;
-    lua_pushboolean(L, level <= max);
+    lua_pushboolean(L, level <= lua_stackdepth(thread));
     lua_gettop(L);
     return 1;
+}
+
+static int getCurrentpc(lua_State* L, CallInfo* ci) {
+    return pcRel(ci->savedpc, ci_func(ci)->l.p);
+}
+
+static int getCurrentLine(lua_State* L, CallInfo* ci) {
+    return luaG_getline(ci_func(ci)->l.p, getCurrentpc(L, ci));
 }
 int fr_debug_getcallstack(lua_State* L) {
     lua_State* thread = optionalThread(L, 1);
@@ -119,7 +123,18 @@ int fr_debug_getcallstack(lua_State* L) {
     do {
         ci++;
 
+        lua_createtable(L, 2, 0);
+
         luaA_pushobject(L, ci->func);
+        lua_rawsetfield(L, -2, "func");
+
+        auto cl = ci->func->value.gc->cl;
+
+        if (!cl.isC) {
+            lua_pushnumber(L, getCurrentLine(thread, ci));
+            lua_rawsetfield(L, -2, "currentline");
+        }
+
         lua_rawseti(L, table, ++index);
     } while (ci < end_ci);
 
@@ -139,13 +154,6 @@ static const char* getfuncname(Closure* cl)
             return getstr(p->debugname);
     }
     return nullptr;
-}
-static int getCurrentpc(lua_State* L, CallInfo* ci) {
-    return pcRel(ci->savedpc, ci_func(ci)->l.p);
-}
-
-static int getCurrentLine(lua_State* L, CallInfo* ci) {
-    return luaG_getline(ci_func(ci)->l.p, getCurrentpc(L, ci));
 }
 int fr_debug_getinfo(lua_State* L) {
     CallInfo* callinfo = nullptr;
