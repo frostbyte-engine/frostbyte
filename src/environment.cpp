@@ -114,7 +114,7 @@ static int fr_getallthreads(lua_State* L) {
     // std::shared_lock lock(TaskScheduler::thread_list_mutex);
 
     createweaktable(L, TaskScheduler::thread_list.size(), 0);
-    for (size_t i = 0; i < TaskScheduler::thread_list.size();i ++) {
+    for (size_t i = 0; i < TaskScheduler::thread_list.size(); i++) {
         lua_State* thread = TaskScheduler::thread_list[i];
         lua_pushnil(L);
         setthvalue(L, L->top - 1, thread);

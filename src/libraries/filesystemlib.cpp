@@ -2,13 +2,12 @@
 #include "environment.hpp"
 
 #include "lua.h"
-#include "luacode.h"
+#include "Luau/Compiler.h"
 #include "lualib.h"
 
 #include <cstring>
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 #include <string_view>
 
 namespace frostbyte {
@@ -182,18 +181,13 @@ static int fr_loadfile(lua_State* L) {
     std::ifstream file(path, std::ios::binary);
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-    size_t bytecode_size = 0;
-    char* bytecode = luau_compile(content.data(), content.size(), NULL, &bytecode_size);
-    if (!bytecode)
-        throw std::runtime_error("failed to allocate memory for script bytecode");
+    std::string bytecode = Luau::compile(content);
+    if (luau_load(L, "", bytecode.data(), bytecode.size(), 0) == 0)
+        return 1;
 
-    int r = luau_load(L, "", bytecode, bytecode_size, 0);
-    free(bytecode);
-
-    if (r)
-        luaL_error(L, "failed to load chunk: %s", lua_tostring(L, -1));
-
-    return 1;
+    lua_pushnil(L);
+    lua_insert(L, -2);
+    return 2;
 }
 
 void open_filesystemlib(lua_State* L) {
