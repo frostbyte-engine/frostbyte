@@ -2,6 +2,7 @@
 #include "environment.hpp"
 
 #include "lua.h"
+#include "luacode.h"
 #include "lualib.h"
 
 #include <cstring>
@@ -162,10 +163,37 @@ static int fr_delfolder(lua_State* L) {
     if (!std::filesystem::is_directory(path))
         luaL_error(L, "given path is not a folder '%s'", relative_path);
 
-    if (!std::filesystem::remove(path))
-        luaL_error(L, "failed to delete file '%s'", relative_path);
+    if (!std::filesystem::remove_all(path))
+        luaL_error(L, "failed to delete folder '%s'", relative_path);
 
     return 0;
+}
+
+static int fr_loadfile(lua_State* L) {
+    const char* relative_path = luaL_checkstring(L, 1);
+
+    checkPath(L, relative_path);
+
+    std::string path = FileSystem::workspace_path;
+    path.append(relative_path);
+    if (!std::filesystem::exists(path))
+        luaL_error(L, "failed to open file '%s'", relative_path);
+
+    std::ifstream file(path, std::ios::binary);
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    size_t bytecode_size = 0;
+    char* bytecode = luau_compile(content.data(), content.size(), NULL, &bytecode_size);
+    if (!bytecode)
+        throw std::runtime_error("failed to allocate memory for script bytecode");
+
+    int r = luau_load(L, "", bytecode, bytecode_size, 0);
+    free(bytecode);
+
+    if (r)
+        luaL_error(L, "failed to load chunk: %s", lua_tostring(L, -1));
+
+    return 1;
 }
 
 void open_filesystemlib(lua_State* L) {
@@ -177,6 +205,7 @@ void open_filesystemlib(lua_State* L) {
     env_expose(isfolder)
     env_expose(delfile)
     env_expose(delfolder)
+    env_expose(loadfile)
 }
 
 }; // namespace frostbyte

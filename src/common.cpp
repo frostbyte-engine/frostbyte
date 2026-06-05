@@ -52,6 +52,7 @@ double getSeconds(lua_State* L, int arg) {
 }
 
 void initializeSharedPtrDestructorList(lua_State* L) {
+    /*
     #define addConstructor(Class, tagname) {                                         \
         lua_setuserdatadtor(L, userdata::tagname, [](lua_State* L, void* ud) {       \
             std::shared_ptr<Class>* ptr = static_cast<std::shared_ptr<Class>*>(ud);  \
@@ -63,6 +64,20 @@ void initializeSharedPtrDestructorList(lua_State* L) {
     addConstructor(rbxInstance, Instance)
 
     #undef addConstructor
+    */
+
+    lua_setuserdatadtor(L, userdata ::Instance, [](lua_State *L, void *ud) {
+        std ::shared_ptr<rbxInstance>* ptr = static_cast<std ::shared_ptr<rbxInstance>*>(ud);
+
+        rbxClass* c = (*ptr)->_class.get();
+        while (c) {
+            if (c->destructorLua)
+                c->destructorLua((*ptr).get());
+            c = c->superclass.get();
+        }
+
+        ptr->reset();
+    });
 }
 
 std::string fixString(std::string_view original) {

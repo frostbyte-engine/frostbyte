@@ -20,6 +20,32 @@
 
 namespace frostbyte {
 
+const ThreadCapability ThreadCapability::PLUGIN                ( 0,      0, "Plugin Security");
+const ThreadCapability ThreadCapability::LOCAL_USER            ( 1, 1 << 0, "Local User Security");
+const ThreadCapability ThreadCapability::WRITE_PLAYER          ( 2, 1 << 1, "Write Player Security");
+const ThreadCapability ThreadCapability::ROBLOX_SCRIPT         ( 3, 1 << 2, "Roblox Script Security");
+const ThreadCapability ThreadCapability::ROBLOX_ENGINE         ( 4, 1 << 3, "Roblox Security");
+const ThreadCapability ThreadCapability::NOT_ACCESSIBLE        ( 5, 1 << 4, "Not Accessible Security");
+const ThreadCapability ThreadCapability::REMOTE_COMMAND        (59, 1 << 5, "Remote Command Security");
+const ThreadCapability ThreadCapability::INTERNAL_TEST         (60, 1 << 6, "Internal Test Security");
+const ThreadCapability ThreadCapability::PLUGIN_OR_OPEN_CLOUD  (61, 1 << 7, "OpenCloud Security");
+const ThreadCapability ThreadCapability::ASSISTANT             (62, 1 << 8, "Assistant Security");
+
+const ThreadIdentity ThreadIdentity::ANONYMOUS              ( 0, 0                                                                                                                                                                                                                            , "Anonymous");
+const ThreadIdentity ThreadIdentity::LOCAL_GUI              ( 1, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag                                                                                                                                                            , "LocalGui");
+const ThreadIdentity ThreadIdentity::GAME_SCRIPT            ( 2, ThreadCapability::REMOTE_COMMAND.flag                                                                                                                                                                                        , "GameScript");
+const ThreadIdentity ThreadIdentity::ELEVATED_GAME_SCRIPT   ( 3, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag | ThreadCapability::ROBLOX_SCRIPT.flag | ThreadCapability::INTERNAL_TEST.flag                                                                              , "ElevatedGameScript");
+const ThreadIdentity ThreadIdentity::COMMAND_BAR            ( 4, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag /*| ThreadCapability::INTERNAL_TEST.flag*/                                                                                                                 , "CommandBar");
+const ThreadIdentity ThreadIdentity::STUDIO_PLUGIN          ( 5, ThreadCapability::PLUGIN.flag /*| ThreadCapability::INTERNAL_TEST.flag*/                                                                                                                                                     , "StudioPlugin");
+const ThreadIdentity ThreadIdentity::ELEVATED_STUDIO_PLUGIN ( 6, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag | ThreadCapability::ROBLOX_SCRIPT.flag | ThreadCapability::ASSISTANT.flag | ThreadCapability::INTERNAL_TEST.flag                                           , "ElevatedStudioPlugin");
+const ThreadIdentity ThreadIdentity::COM                    ( 7, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag | ThreadCapability::WRITE_PLAYER.flag | ThreadCapability::ROBLOX_SCRIPT.flag | ThreadCapability::ROBLOX_ENGINE.flag | ThreadCapability::NOT_ACCESSIBLE.flag, "COM");
+const ThreadIdentity ThreadIdentity::WEB_SERVICE            ( 8, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag | ThreadCapability::WRITE_PLAYER.flag | ThreadCapability::ROBLOX_SCRIPT.flag | ThreadCapability::ROBLOX_ENGINE.flag | ThreadCapability::NOT_ACCESSIBLE.flag, "WebService");
+const ThreadIdentity ThreadIdentity::REPLICATOR             ( 9, ThreadCapability::WRITE_PLAYER.flag | ThreadCapability::ROBLOX_SCRIPT.flag                                                                                                                                                   , "Replicator");
+const ThreadIdentity ThreadIdentity::ASSISTANT              (10, ThreadCapability::PLUGIN.flag | ThreadCapability::LOCAL_USER.flag | ThreadCapability::ASSISTANT.flag                                                                                                                         , "Assistant");
+const ThreadIdentity ThreadIdentity::OPEN_CLOUD_SESSION     (11, ThreadCapability::PLUGIN_OR_OPEN_CLOUD.flag                                                                                                                                                                                  , "OpenCloudSession");
+const ThreadIdentity ThreadIdentity::TESTING_GAME_SCRIPT    (12, ThreadCapability::INTERNAL_TEST.flag                                                                                                                                                                                         , "TestingGameScript");
+const ThreadIdentity ThreadIdentity::UNDO_STACK             (13, ThreadCapability::WRITE_PLAYER.flag | ThreadCapability::ROBLOX_SCRIPT.flag                                                                                                                                                   , "UndoStack");
+
 const char* taskStatusTostring(TaskStatus status) {
     switch (status) {
         case IDLE:
@@ -34,27 +60,6 @@ const char* taskStatusTostring(TaskStatus status) {
             return "deferring";
         case DELAYING:
             return "delaying";
-        default:
-            return "unknown";
-    }
-};
-
-const char* capabilityTostring(ThreadCapability capability) {
-    switch (capability) {
-        case NONE:
-            return "None (0)";
-        case PLUGIN_SECURITY:
-            return "PluginSecurity (1)";
-        case LOCAL_USER_SECURITY:
-            return "LocalUserSecurity (3)";
-        case WRITE_PLAYER_SECURITY:
-            return "WritePlayerSecurity (4)";
-        case ROBLOX_SCRIPT_SECURITY:
-            return "RobloxScriptSecurity (5)";
-        case ROBLOX_SECURITY:
-            return "RobloxSecurity (6)";
-        case NOT_ACCESSIBLE_SECURITY:
-            return "NotAccessibleSecurity (7)";
         default:
             return "unknown";
     }
@@ -141,8 +146,6 @@ void TaskScheduler::setup(lua_State *L) {
 
             task->canceled = false;
             task->arg_count = 0;
-
-            task->capability = ROBLOX_SECURITY;
 
             lua_setthreaddata(thread, task);
 

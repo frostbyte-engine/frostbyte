@@ -637,6 +637,7 @@ int main(int argc, char** argv) {
 
     TaskScheduler::setup(L);
 
+    Console::ScriptConsole.debugf("global state: %p", L->global);
     Console::ScriptConsole.debugf("main state: %p", L);
 
     lua_createtable(L, 0, 1);
@@ -1126,17 +1127,25 @@ int main(int argc, char** argv) {
                             static const char* status_item_list[] = { "Idle", "Running", "Yielding", "Waiting", "Deferring", "Delaying" };
                             ImGui::Combo("Status", reinterpret_cast<int*>(&task->status), status_item_list, IM_ARRAYSIZE(status_item_list));
 
-                            static const char* capability_item_list[] = {
-                                "None",
-                                "PluginSecurity",
-                                "INVALID_CAPABILITY",
-                                "LocalUserSecurity",
-                                "WritePlayerSecurity",
-                                "RobloxScriptSecurity",
-                                "RobloxSecurity",
-                                "NotAccesibleSecurity"
+                            static const char* identity_item_list[] = {
+                                "Anonymous",
+                                "LocalGui",
+                                "GameScript",
+                                "ElevatedGameScript",
+                                "CommandBar",
+                                "StudioPlugin",
+                                "ElevatedStudioPlugin",
+                                "COM",
+                                "WebService",
+                                "Replicator",
+                                "Assistant",
+                                "OpenCloudSession",
+                                "TestingGameScript",
+                                "UndoStack"
                             };
-                            ImGui::Combo("Capability", reinterpret_cast<int*>(&task->capability), capability_item_list, IM_ARRAYSIZE(capability_item_list));
+                            int id = task->identity->id;
+                            if (ImGui::Combo("Identity", &id, identity_item_list, IM_ARRAYSIZE(identity_item_list)))
+                                task->identity = identity_map.at(id);
 
                             const bool is_protected = std::find(protected_thread_list, protected_thread_list_end, thread) != protected_thread_list_end;
                             if (is_protected)

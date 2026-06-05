@@ -1,6 +1,7 @@
 #include "environment.hpp"
 
 #include "common.hpp"
+#include "raylib.h"
 #include "taskscheduler.hpp"
 
 #include "engine/classes/userinputservice.hpp"
@@ -25,6 +26,12 @@
 #include "ltable.h"
 
 namespace frostbyte {
+
+static int fr_getexecutorname(lua_State* L) {
+    lua_pushstring(L, "frostbyte");
+
+    return 1;
+}
 
 static int fr_identifyexecutor(lua_State* L) {
     lua_pushstring(L, "frostbyte");
@@ -315,6 +322,20 @@ static int fr_setwindowtitle(lua_State* L) {
     return 0;
 }
 
+static int fr_setclipboard(lua_State* L) {
+    SetClipboardText(luaL_checkstring(L, 1));
+    return 0;
+}
+
+static int fr_getclipboard(lua_State* L) {
+    if (const char* text = GetClipboardText())
+        lua_pushstring(L, text);
+    else
+        lua_pushstring(L, "");
+
+    return 1;
+}
+
 static int fr_getgenv(lua_State* L) {
     if (TaskScheduler::sandboxing)
         luaL_error(L, "you cannot use getgenv while sandboxing is enabled! rerun frostbyte with the --nosandbox flag");
@@ -342,7 +363,7 @@ static int fr_printidentity(lua_State* L) {
     assert(task);
 
     pushFunctionFromLookup(L, fr_print);
-    lua_pushfstring(L, "Current identity is %d", task->capability);
+    lua_pushfstring(L, "Current identity is %d", task->identity->id);
 
     lua_call(L, 1, 0);
 
@@ -352,18 +373,20 @@ static int fr_getthreadidentity(lua_State* L) {
     Task* task = getTask(L);
     assert(task);
 
-    lua_pushnumber(L, task->capability);
+    lua_pushnumber(L, task->identity->id);
     return 1;
 }
 static int fr_setthreadidentity(lua_State* L) {
     Task* task = getTask(L);
     assert(task);
 
-    const int new_identity = luaL_checknumberrange(L, 1, LOWEST_CAPABILITY, HIGHEST_CAPABILTY, "identity");
-    if (new_identity == INVALID_CAPABILITY)
-        luaL_error(L, "%d is not a valid identity", INVALID_CAPABILITY);
+    int identity = luaL_checkinteger(L, 1);
 
-    task->capability = static_cast<ThreadCapability>(new_identity);
+    const auto& it = identity_map.find(identity);
+    if (it == identity_map.end())
+        luaL_error(L, "%d is not a valid identity", identity);
+
+    task->identity = it->second;
 
     return 0;
 }
@@ -387,11 +410,10 @@ void open_frostbyte_environment(lua_State *L) {
     lua_newtable(L);
     lua_setfield(L, LUA_REGISTRYINDEX, STRINGLOOKUP);
 
-    lua_pushcfunction(L, fr_print, "print");
-    lua_setglobal(L, "print");
-    lua_pushcfunction(L, fr_warn, "warn");
-    lua_setglobal(L, "warn");
+    env_expose(print)
+    env_expose(warn)
 
+    env_expose(getexecutorname)
     env_expose(identifyexecutor)
 
     env_expose(Version)
@@ -429,11 +451,17 @@ void open_frostbyte_environment(lua_State *L) {
     env_expose(setrawmetatable)
 
     env_expose(iswindowactive)
+    env_alias(iswindowactive, isrbxactive)
+    env_alias(iswindowactive, isgameactive)
 
     env_expose(setfpscap)
     env_expose(getfpscap)
 
     env_expose(setwindowtitle)
+
+    env_expose(setclipboard)
+    env_expose(getclipboard)
+    env_alias(setclipboard, toclipboard)
 
     {
     lua_pushvalue(L, LUA_GLOBALSINDEX);
@@ -441,6 +469,7 @@ void open_frostbyte_environment(lua_State *L) {
     setfunctionfield(L, DrawEntry__index, "getrenderproperty");
     setfunctionfield(L, DrawEntry__newindex, "setrenderproperty");
     setfunctionfield(L, fr_isrenderobject, "isrenderobject");
+    env_alias(isrenderobject, isrenderobj)
     setfunctionfield(L, DrawEntry_clear, "cleardrawcache");
 
     setfunctionfield(L, fireRBXScriptSignal, "firesignal");

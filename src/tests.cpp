@@ -109,7 +109,22 @@ namespace frostbyte {
             check(3, 4, 0, 0) \
             obj = UDim2.new(UDim.new('2', 3), newproxy()) \
             check(2, 3, 0, 0) \
+        "},
+
+        /*
+        { .name = "QueryDescendants", .value = "local root = Instance.new(\"Part\") \
+            local a, b = pcall(root.QueryDescendants, root, \"\")\
+            assert(type(b) == \"table\" and not next(b))\
+            a, b = pcall(root.QueryDescendants, root, \" \")\
+            assert(type(b) == \"table\" and not next(b))\
+            a, b = pcall(root.QueryDescendants, root, \"\\4\")\
+            assert(type(b) == \"string\" and b == \"Expected at least one filter\")\
+            a, b = pcall(root.QueryDescendants, root, \" \\4\")\
+            assert(type(b) == \"string\" and b == \"Expected at least one filter\")\
+            a, b = pcall(root.QueryDescendants, root, \"#foo\\4\")\
+            assert(type(b) == \"string\" and b == \"Unexpected trailing character: '\4'\")\
         "}
+        */
     };
     constexpr int test_count = sizeof(test_list) / sizeof(test_list[0]);
 

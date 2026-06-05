@@ -80,6 +80,7 @@ public:
     std::vector<std::string> events;
     std::function<void(lua_State* L, std::shared_ptr<rbxInstance> instance)> constructor = nullptr;
     std::function<void(rbxInstance*)> destructor = nullptr;
+    std::function<void(rbxInstance*)> destructorLua = nullptr;
 
     void newMethod(const char* name, lua_CFunction func, lua_Continuation cont = nullptr) {
         rbxMethod method;
@@ -98,6 +99,7 @@ struct rbxCallback {
 
 typedef std::variant<
     std::monostate,
+    void*,
     bool,
     int32_t,
     int64_t,
@@ -406,6 +408,7 @@ int setInstanceValueVariant(rbxValueVariant& variant, T value) {
         }                                                                                  \
     }
 
+    handleType(void*)
     handleType(bool)
     handleType(int32_t)
     handleType(int64_t)

@@ -16,8 +16,6 @@ namespace frostbyte {
 std::vector<std::shared_ptr<rbxInstance>> TweenService::active_tween_list;
 // std::shared_mutex TweenService::active_tween_list_mutex;
 
-std::map<std::shared_ptr<rbxInstance>, TweenObject> tween_instance_to_object_map;
-
 void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> tween_instance) {
     auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
     if (playback_state->name == "Delayed" || playback_state->name == "Playing")
@@ -26,47 +24,48 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
     // std::lock_guard lock(TweenService::active_tween_list_mutex);
 
     auto& tween_info = getInstanceValue<TweenInfo>(tween_instance, "TweenInfo");
-    auto& tween_object = tween_instance_to_object_map.at(tween_instance);
+    auto tween_object_ptr = getInstanceValue<void*>(tween_instance, "internal_Object");
+    auto tween_object = static_cast<TweenObject*>(tween_object_ptr);
 
     const bool was_paused = playback_state->name == "Paused";
 
     const double clock = lua_clock();
 
-    tween_object.tween_func = linear;
+    tween_object->tween_func = linear;
     switch (tween_info.easing_direction->value) {
         case 0: // In
             switch (tween_info.easing_style->value) {
                 case 0: // Linear
                     break;
                 case 1: // Sine
-                    tween_object.tween_func = easeInSine;
+                    tween_object->tween_func = easeInSine;
                     break;
                 case 2: // Back
-                    tween_object.tween_func = easeInBack;
+                    tween_object->tween_func = easeInBack;
                     break;
                 case 3: // Quad
-                    tween_object.tween_func = easeInQuad;
+                    tween_object->tween_func = easeInQuad;
                     break;
                 case 4: // Quart
-                    tween_object.tween_func = easeInQuart;
+                    tween_object->tween_func = easeInQuart;
                     break;
                 case 5: // Quint
-                    tween_object.tween_func = easeInQuint;
+                    tween_object->tween_func = easeInQuint;
                     break;
                 case 6: // Bounce
-                    tween_object.tween_func = easeInBounce;
+                    tween_object->tween_func = easeInBounce;
                     break;
                 case 7: // Elastic
-                    tween_object.tween_func = easeInElastic;
+                    tween_object->tween_func = easeInElastic;
                     break;
                 case 8: // Exponential
-                    tween_object.tween_func = easeInExponential;
+                    tween_object->tween_func = easeInExponential;
                     break;
                 case 9: // Circular
-                    tween_object.tween_func = easeInCircular;
+                    tween_object->tween_func = easeInCircular;
                     break;
                 case 10: // Cubic
-                    tween_object.tween_func = easeInCubic;
+                    tween_object->tween_func = easeInCubic;
                     break;
             }
             break;
@@ -75,34 +74,34 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
                 case 0: // Linear
                     break;
                 case 1: // Sine
-                    tween_object.tween_func = easeOutSine;
+                    tween_object->tween_func = easeOutSine;
                     break;
                 case 2: // Back
-                    tween_object.tween_func = easeOutBack;
+                    tween_object->tween_func = easeOutBack;
                     break;
                 case 3: // Quad
-                    tween_object.tween_func = easeOutQuad;
+                    tween_object->tween_func = easeOutQuad;
                     break;
                 case 4: // Quart
-                    tween_object.tween_func = easeOutQuad;
+                    tween_object->tween_func = easeOutQuad;
                     break;
                 case 5: // Quint
-                    tween_object.tween_func = easeOutQuint;
+                    tween_object->tween_func = easeOutQuint;
                     break;
                 case 6: // Bounce
-                    tween_object.tween_func = easeOutBounce;
+                    tween_object->tween_func = easeOutBounce;
                     break;
                 case 7: // Elastic
-                    tween_object.tween_func = easeOutElastic;
+                    tween_object->tween_func = easeOutElastic;
                     break;
                 case 8: // Exponential
-                    tween_object.tween_func = easeOutExponential;
+                    tween_object->tween_func = easeOutExponential;
                     break;
                 case 9: // Circular
-                    tween_object.tween_func = easeOutCircular;
+                    tween_object->tween_func = easeOutCircular;
                     break;
                 case 10: // Cubic
-                    tween_object.tween_func = easeOutCubic;
+                    tween_object->tween_func = easeOutCubic;
                     break;
             }
             break;
@@ -111,34 +110,34 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
                 case 0: // Linear
                     break;
                 case 1: // Sine
-                    tween_object.tween_func = easeInOutSine;
+                    tween_object->tween_func = easeInOutSine;
                     break;
                 case 2: // Back
-                    tween_object.tween_func = easeInOutBack;
+                    tween_object->tween_func = easeInOutBack;
                     break;
                 case 3: // Quad
-                    tween_object.tween_func = easeInOutQuad;
+                    tween_object->tween_func = easeInOutQuad;
                     break;
                 case 4: // Quart
-                    tween_object.tween_func = easeInOutQuart;
+                    tween_object->tween_func = easeInOutQuart;
                     break;
                 case 5: // Quint
-                    tween_object.tween_func = easeInOutQuint;
+                    tween_object->tween_func = easeInOutQuint;
                     break;
                 case 6: // Bounce
-                    tween_object.tween_func = easeInOutBounce;
+                    tween_object->tween_func = easeInOutBounce;
                     break;
                 case 7: // Elastic
-                    tween_object.tween_func = easeInOutElastic;
+                    tween_object->tween_func = easeInOutElastic;
                     break;
                 case 8: // Exponential
-                    tween_object.tween_func = easeInOutExponential;
+                    tween_object->tween_func = easeInOutExponential;
                     break;
                 case 9: // Circular
-                    tween_object.tween_func = easeInOutCircular;
+                    tween_object->tween_func = easeInOutCircular;
                     break;
                 case 10: // Cubic
-                    tween_object.tween_func = easeInOutCubic;
+                    tween_object->tween_func = easeInOutCubic;
                     break;
             }
             break;
@@ -146,17 +145,17 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
 
     if (!was_paused) {
         // TODO: verify these two lines
-        tween_object.repeat_count = tween_info.repeat_count;
-        tween_object.reverse_state = static_cast<TweenObject::ReverseState>(tween_info.reverses);
+        tween_object->repeat_count = tween_info.repeat_count;
+        tween_object->reverse_state = static_cast<TweenObject::ReverseState>(tween_info.reverses);
 
-        for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
-            auto& tween = tween_object.tween_list[i];
-            tween.original = getInstanceValueVariant(tween_object.instance, tween.property.c_str());
+        for (size_t i = 0; i < tween_object->tween_list.size(); i++) {
+            auto& tween = tween_object->tween_list[i];
+            tween.original = getInstanceValueVariant(tween_object->instance, tween.property.c_str());
         }
     }
 
-    for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
-        auto& tween = tween_object.tween_list[i];
+    for (size_t i = 0; i < tween_object->tween_list.size(); i++) {
+        auto& tween = tween_object->tween_list[i];
         tween.active = true;
         tween.interrupted = false;
     }
@@ -167,25 +166,26 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
     // TODO: duplicate code with wouldTweenInterrupt
  
     std::vector<const char*> this_properties;
-    this_properties.reserve(tween_object.tween_list.size());
+    this_properties.reserve(tween_object->tween_list.size());
 
     std::transform(
-        tween_object.tween_list.begin(), tween_object.tween_list.end(),
+        tween_object->tween_list.begin(), tween_object->tween_list.end(),
         std::back_inserter(this_properties),
         [](const Tween& tween) { return tween.property.c_str(); }
     );
 
     for (size_t i = 0; i < TweenService::active_tween_list.size(); i++) {
         auto& other_tween_instance = TweenService::active_tween_list[i];
-        auto& other_tween_object = tween_instance_to_object_map.at(other_tween_instance);
+        auto other_tween_object_ptr = getInstanceValue<void*>(other_tween_instance, "internal_Object");
+        auto other_tween_object = static_cast<TweenObject*>(other_tween_object_ptr);
 
-        if (other_tween_object.instance != tween_object.instance)
+        if (other_tween_object->instance != tween_object->instance)
             continue;
         if (other_tween_instance == tween_instance)
             continue;
 
-        for (size_t i2 = 0; i2 < other_tween_object.tween_list.size(); i2++) {
-            auto& other_tween = other_tween_object.tween_list[i2];
+        for (size_t i2 = 0; i2 < other_tween_object->tween_list.size(); i2++) {
+            auto& other_tween = other_tween_object->tween_list[i2];
             bool found = false;
             for (size_t i3 = 0; i3 < this_properties.size(); i3++) {
                 auto& property = this_properties[i3];
@@ -202,18 +202,18 @@ void TweenService::activateTween(lua_State* L, std::shared_ptr<rbxInstance> twee
     }
 
     const bool has_delay = tween_info.delay_time;
-    tween_object.has_delay = has_delay;
+    tween_object->has_delay = has_delay;
 
     if (has_delay && !was_paused) {
-        tween_object.delay_timer = clock + tween_info.delay_time;
+        tween_object->delay_timer = clock + tween_info.delay_time;
         setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Delayed"));
     } else {
-        tween_object.delay_timer = 0;
+        tween_object->delay_timer = 0;
 
-        tween_object.start_time = clock;
+        tween_object->start_time = clock;
         if (was_paused)
-            tween_object.start_time -= tween_object.elapsed;
-        tween_object.end_time = clock + tween_info.time - (tween_object.elapsed * was_paused);
+            tween_object->start_time -= tween_object->elapsed;
+        tween_object->end_time = clock + tween_info.time - (tween_object->elapsed * was_paused);
         setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Playing"));
     }
 
@@ -275,7 +275,8 @@ void TweenService::process(lua_State *L) {
     const double clock = lua_clock();
     for (size_t i = 0; i < TweenService::active_tween_list.size(); i++) {
         auto& tween_instance = TweenService::active_tween_list[i];
-        auto& tween_object = tween_instance_to_object_map.at(tween_instance);
+        auto tween_object_ptr = getInstanceValue<void*>(tween_instance, "internal_Object");
+        auto tween_object = static_cast<TweenObject*>(tween_object_ptr);
 
         auto& playback_state = getInstanceValue<EnumItem*>(tween_instance, "PlaybackState");
         auto& tween_info = getInstanceValue<TweenInfo>(tween_instance, "TweenInfo");
@@ -283,11 +284,11 @@ void TweenService::process(lua_State *L) {
         if (playback_state->name == "Cancelled")
             goto COMPLETE;
 
-        if (tween_object.delay_timer) {
-            if (clock >= tween_object.delay_timer) {
+        if (tween_object->delay_timer) {
+            if (clock >= tween_object->delay_timer) {
                 setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Playing"));
 
-                tween_object.delay_timer = 0;
+                tween_object->delay_timer = 0;
                 goto RESET_TIMING;
             }
             continue;
@@ -297,23 +298,23 @@ void TweenService::process(lua_State *L) {
         if (playback_state->name != "Playing")
             continue;
 
-        if (tween_object.reset_properties) {
-            tween_object.reset_properties = false;
-            for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
-                auto& tween = tween_object.tween_list[i];
-                setInstanceValueFromVariant(tween_object.instance, L, tween.property.c_str(), tween.original, true);
+        if (tween_object->reset_properties) {
+            tween_object->reset_properties = false;
+            for (size_t i = 0; i < tween_object->tween_list.size(); i++) {
+                auto& tween = tween_object->tween_list[i];
+                setInstanceValueFromVariant(tween_object->instance, L, tween.property.c_str(), tween.original, true);
             }
         }
 
-        tween_object.elapsed = clock - tween_object.start_time;
-        double elapsed = tween_object.elapsed;
-        if (tween_object.reverse_state == TweenObject::REVERSING)
+        tween_object->elapsed = clock - tween_object->start_time;
+        double elapsed = tween_object->elapsed;
+        if (tween_object->reverse_state == TweenObject::REVERSING)
             elapsed = tween_info.time - elapsed;
 
         bool has_active_tween = false;
         bool was_interrupted = false;
-        for (size_t i = 0; i < tween_object.tween_list.size(); i++) {
-            auto& tween = tween_object.tween_list[i];
+        for (size_t i = 0; i < tween_object->tween_list.size(); i++) {
+            auto& tween = tween_object->tween_list[i];
 
             if (tween.interrupted)
                 was_interrupted = true;
@@ -324,18 +325,18 @@ void TweenService::process(lua_State *L) {
             has_active_tween = true;
 
             const char* property = tween.property.c_str();
-            auto& value = getInstanceValueVariant(tween_object.instance, property);
+            auto& value = getInstanceValueVariant(tween_object->instance, property);
 
             if (std::holds_alternative<bool>(value))
-                setInstanceValue<bool>(tween_object.instance, L, property, static_cast<bool>(tween_object.tween_func(elapsed, std::get<bool>(tween.original), std::get<bool>(tween.target) - std::get<bool>(tween.original), tween_info.time)));
+                setInstanceValue<bool>(tween_object->instance, L, property, static_cast<bool>(tween_object->tween_func(elapsed, std::get<bool>(tween.original), std::get<bool>(tween.target) - std::get<bool>(tween.original), tween_info.time)));
             else if (std::holds_alternative<int32_t>(value))
-                setInstanceValue(tween_object.instance, L, property, static_cast<int32_t>(tween_object.tween_func(elapsed, std::get<int32_t>(tween.original), std::get<int32_t>(tween.target) - std::get<int32_t>(tween.original), tween_info.time)));
+                setInstanceValue(tween_object->instance, L, property, static_cast<int32_t>(tween_object->tween_func(elapsed, std::get<int32_t>(tween.original), std::get<int32_t>(tween.target) - std::get<int32_t>(tween.original), tween_info.time)));
             else if (std::holds_alternative<int64_t>(value))
-                setInstanceValue(tween_object.instance, L, property, static_cast<int64_t>(tween_object.tween_func(elapsed, std::get<int64_t>(tween.original), std::get<int64_t>(tween.target) - std::get<int64_t>(tween.original), tween_info.time)));
+                setInstanceValue(tween_object->instance, L, property, static_cast<int64_t>(tween_object->tween_func(elapsed, std::get<int64_t>(tween.original), std::get<int64_t>(tween.target) - std::get<int64_t>(tween.original), tween_info.time)));
             else if (std::holds_alternative<float>(value))
-                setInstanceValue(tween_object.instance, L, property, static_cast<float>(tween_object.tween_func(elapsed, std::get<float>(tween.original), std::get<float>(tween.target) - std::get<float>(tween.original), tween_info.time)));
+                setInstanceValue(tween_object->instance, L, property, static_cast<float>(tween_object->tween_func(elapsed, std::get<float>(tween.original), std::get<float>(tween.target) - std::get<float>(tween.original), tween_info.time)));
             else if (std::holds_alternative<double>(value))
-                setInstanceValue(tween_object.instance, L, property, static_cast<double>(tween_object.tween_func(elapsed, std::get<double>(tween.original), std::get<double>(tween.target) - std::get<double>(tween.original), tween_info.time)));
+                setInstanceValue(tween_object->instance, L, property, static_cast<double>(tween_object->tween_func(elapsed, std::get<double>(tween.original), std::get<double>(tween.target) - std::get<double>(tween.original), tween_info.time)));
             else if (std::holds_alternative<EnumItem*>(value)) {
                 // NOTE: untested; not going to test rn because I can't find a property that doesn't throw the 'is not a datatype that can be tweened' error
                 // const unsigned int original_value = getEnumItemFromWrapper(std::get<EnumItemWrapper>(tween.original)).value;
@@ -351,80 +352,80 @@ void TweenService::process(lua_State *L) {
                 auto& target = std::get<Color>(tween.target);
 
                 Color color{0, 0, 0, original.a};
-                color.r = tween_object.tween_func(elapsed, original.r, target.r - original.r, tween_info.time);
-                color.g = tween_object.tween_func(elapsed, original.g, target.g - original.g, tween_info.time);
-                color.b = tween_object.tween_func(elapsed, original.b, target.b - original.b, tween_info.time);
+                color.r = tween_object->tween_func(elapsed, original.r, target.r - original.r, tween_info.time);
+                color.g = tween_object->tween_func(elapsed, original.g, target.g - original.g, tween_info.time);
+                color.b = tween_object->tween_func(elapsed, original.b, target.b - original.b, tween_info.time);
 
-                setInstanceValue(tween_object.instance, L, property, color);
+                setInstanceValue(tween_object->instance, L, property, color);
             } else if (std::holds_alternative<UDim>(value)) {
                 auto& original = std::get<UDim>(tween.original);
                 auto& target = std::get<UDim>(tween.target);
 
                 UDim udim{0, 0};
-                udim.scale = tween_object.tween_func(elapsed, original.scale, target.scale - original.scale, tween_info.time);
-                udim.offset = tween_object.tween_func(elapsed, original.offset, target.offset - original.offset, tween_info.time);
+                udim.scale = tween_object->tween_func(elapsed, original.scale, target.scale - original.scale, tween_info.time);
+                udim.offset = tween_object->tween_func(elapsed, original.offset, target.offset - original.offset, tween_info.time);
 
-                setInstanceValue(tween_object.instance, L, property, udim);
+                setInstanceValue(tween_object->instance, L, property, udim);
             } else if (std::holds_alternative<UDim2>(value)) {
                 auto& original = std::get<UDim2>(tween.original);
                 auto& target = std::get<UDim2>(tween.target);
 
                 UDim2 udim2{{0, 0}, {0, 0}};
-                udim2.x.scale = tween_object.tween_func(elapsed, original.x.scale, target.x.scale - original.x.scale, tween_info.time);
-                udim2.x.offset = tween_object.tween_func(elapsed, original.x.offset, target.x.offset - original.x.offset, tween_info.time);
-                udim2.y.scale = tween_object.tween_func(elapsed, original.y.scale, target.y.scale - original.y.scale, tween_info.time);
-                udim2.y.offset = tween_object.tween_func(elapsed, original.y.offset, target.y.offset - original.y.offset, tween_info.time);
+                udim2.x.scale = tween_object->tween_func(elapsed, original.x.scale, target.x.scale - original.x.scale, tween_info.time);
+                udim2.x.offset = tween_object->tween_func(elapsed, original.x.offset, target.x.offset - original.x.offset, tween_info.time);
+                udim2.y.scale = tween_object->tween_func(elapsed, original.y.scale, target.y.scale - original.y.scale, tween_info.time);
+                udim2.y.offset = tween_object->tween_func(elapsed, original.y.offset, target.y.offset - original.y.offset, tween_info.time);
 
-                setInstanceValue(tween_object.instance, L, property, udim2);
+                setInstanceValue(tween_object->instance, L, property, udim2);
             } else if (std::holds_alternative<Vector2>(value)) {
                 auto& original = std::get<Vector2>(tween.original);
                 auto& target = std::get<Vector2>(tween.target);
 
                 Vector2 vector2{0, 0};
-                vector2.x = tween_object.tween_func(elapsed, original.x, target.x - original.x, tween_info.time);
-                vector2.y = tween_object.tween_func(elapsed, original.y, target.y - original.y, tween_info.time);
+                vector2.x = tween_object->tween_func(elapsed, original.x, target.x - original.x, tween_info.time);
+                vector2.y = tween_object->tween_func(elapsed, original.y, target.y - original.y, tween_info.time);
 
-                setInstanceValue(tween_object.instance, L, property, vector2);
+                setInstanceValue(tween_object->instance, L, property, vector2);
             } else if (std::holds_alternative<Vector3>(value)) {
                 auto& original = std::get<Vector3>(tween.original);
                 auto& target = std::get<Vector3>(tween.target);
 
                 Vector3 vector3{0, 0};
-                vector3.x = tween_object.tween_func(elapsed, original.x, target.x - original.x, tween_info.time);
-                vector3.y = tween_object.tween_func(elapsed, original.y, target.y - original.y, tween_info.time);
-                vector3.z = tween_object.tween_func(elapsed, original.z, target.z - original.z, tween_info.time);
+                vector3.x = tween_object->tween_func(elapsed, original.x, target.x - original.x, tween_info.time);
+                vector3.y = tween_object->tween_func(elapsed, original.y, target.y - original.y, tween_info.time);
+                vector3.z = tween_object->tween_func(elapsed, original.z, target.z - original.z, tween_info.time);
 
-                setInstanceValue(tween_object.instance, L, property, vector3);
+                setInstanceValue(tween_object->instance, L, property, vector3);
             } else
                 assert(!"UNHANDLED TYPE FOR TWEEN");
         }
 
         // cancel if every tween has been interrupted, or complete if all tweens have finished naturally
-        if (!has_active_tween && !tween_object.is_empty) {
+        if (!has_active_tween && !tween_object->is_empty) {
             setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at(was_interrupted ? "Cancelled" : "Completed"));
             goto COMPLETE;
         }
 
-        if (clock >= tween_object.end_time) {
-            switch (tween_object.reverse_state) {
+        if (clock >= tween_object->end_time) {
+            switch (tween_object->reverse_state) {
                 case TweenObject::REVERSING:
-                    tween_object.reverse_state = TweenObject::WAITING;
+                    tween_object->reverse_state = TweenObject::WAITING;
                     break;
                 case TweenObject::WAITING:
-                    tween_object.reverse_state = TweenObject::REVERSING;
+                    tween_object->reverse_state = TweenObject::REVERSING;
                     goto RESET_TIMING;
                     break;
                 default:
                     break;
             }
 
-            if (tween_object.repeat_count) {
-                if (tween_object.repeat_count > 0)
-                    tween_object.repeat_count--;
+            if (tween_object->repeat_count) {
+                if (tween_object->repeat_count > 0)
+                    tween_object->repeat_count--;
 
-                tween_object.reset_properties = true;
-                if (tween_object.has_delay) {
-                    tween_object.delay_timer = clock + tween_info.delay_time;
+                tween_object->reset_properties = true;
+                if (tween_object->has_delay) {
+                    tween_object->delay_timer = clock + tween_info.delay_time;
 
                     setInstanceValue(tween_instance, L, "PlaybackState", &Enum::enum_map.at("PlaybackState").item_map.at("Delayed"));
                     continue;
@@ -445,8 +446,8 @@ void TweenService::process(lua_State *L) {
         continue;
 
         RESET_TIMING:
-        tween_object.start_time = clock;
-        tween_object.end_time = clock + tween_info.time;
+        tween_object->start_time = clock;
+        tween_object->end_time = clock + tween_info.time;
         continue;
     }
 
@@ -480,7 +481,6 @@ namespace rbxInstance_TweenService_methods {
 
         TweenObject tween_object;
         tween_object.instance = instance;
-        tween_object.tween_instance = tween_instance;
 
         bool is_empty = true;
         lua_pushnil(L);
@@ -513,7 +513,8 @@ namespace rbxInstance_TweenService_methods {
 
         tween_object.is_empty = is_empty;
 
-        tween_instance_to_object_map[tween_instance] = tween_object;
+        TweenObject* tween_object_ptr = new TweenObject(tween_object);
+        setInstanceValue(tween_instance, L, "internal_Object", (void*)tween_object_ptr, true);
 
         return lua_pushinstance(L, tween_instance);
     }

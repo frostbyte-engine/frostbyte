@@ -3,6 +3,7 @@
 #include <mutex>
 #include <queue>
 #include <shared_mutex>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -34,19 +35,71 @@ struct TaskTiming {
     double count = 0.0;
 };
 
-enum ThreadCapability {
-    LOWEST_CAPABILITY,
+// CREDITS: https://github.com/Pseudoreality/Roblox-Identities
+// NOTE: I ported ^ over on June 4th, 2026 so our api json might not match thread capabilities/identities
 
-    NONE = LOWEST_CAPABILITY,
-    PLUGIN_SECURITY,
-    INVALID_CAPABILITY = 2,
-    LOCAL_USER_SECURITY = 3,
-    WRITE_PLAYER_SECURITY,
-    ROBLOX_SCRIPT_SECURITY,
-    ROBLOX_SECURITY,
-    NOT_ACCESSIBLE_SECURITY,
+class ThreadCapability {
+public:
+    uint8_t id = 0;
+    uint16_t flag = 0;
+    const char* name = "unknown capability";
+private:
+    ThreadCapability(uint8_t id, uint16_t flag, const char* name): id(id), flag(flag), name(name) {}
 
-    HIGHEST_CAPABILTY = NOT_ACCESSIBLE_SECURITY
+public:
+    static const ThreadCapability PLUGIN;
+    static const ThreadCapability INVALID;
+    static const ThreadCapability LOCAL_USER;
+    static const ThreadCapability WRITE_PLAYER;
+    static const ThreadCapability ROBLOX_SCRIPT;
+    static const ThreadCapability ROBLOX_ENGINE;
+    static const ThreadCapability NOT_ACCESSIBLE;
+    static const ThreadCapability REMOTE_COMMAND;
+    static const ThreadCapability INTERNAL_TEST;
+    static const ThreadCapability PLUGIN_OR_OPEN_CLOUD;
+    static const ThreadCapability ASSISTANT;
+};
+
+class ThreadIdentity {
+public:
+    uint8_t id = 0;
+    uint16_t capability = 0;
+    const char* name = "unknown identity";
+private:
+    ThreadIdentity(uint8_t id, uint16_t capability, const char* name): id(id), capability(capability), name(name) {}
+
+public:
+    static const ThreadIdentity ANONYMOUS;
+    static const ThreadIdentity LOCAL_GUI;
+    static const ThreadIdentity GAME_SCRIPT;
+    static const ThreadIdentity ELEVATED_GAME_SCRIPT;
+    static const ThreadIdentity COMMAND_BAR;
+    static const ThreadIdentity STUDIO_PLUGIN;
+    static const ThreadIdentity ELEVATED_STUDIO_PLUGIN;
+    static const ThreadIdentity COM;
+    static const ThreadIdentity WEB_SERVICE;
+    static const ThreadIdentity REPLICATOR;
+    static const ThreadIdentity ASSISTANT;
+    static const ThreadIdentity OPEN_CLOUD_SESSION;
+    static const ThreadIdentity TESTING_GAME_SCRIPT;
+    static const ThreadIdentity UNDO_STACK;
+};
+
+static const std::unordered_map<uint8_t, const ThreadIdentity*> identity_map {
+    {ThreadIdentity::ANONYMOUS.id, &ThreadIdentity::ANONYMOUS},
+    {ThreadIdentity::LOCAL_GUI.id, &ThreadIdentity::LOCAL_GUI},
+    {ThreadIdentity::GAME_SCRIPT.id, &ThreadIdentity::GAME_SCRIPT},
+    {ThreadIdentity::ELEVATED_GAME_SCRIPT.id, &ThreadIdentity::ELEVATED_GAME_SCRIPT},
+    {ThreadIdentity::COMMAND_BAR.id, &ThreadIdentity::COMMAND_BAR},
+    {ThreadIdentity::STUDIO_PLUGIN.id, &ThreadIdentity::STUDIO_PLUGIN},
+    {ThreadIdentity::ELEVATED_STUDIO_PLUGIN.id, &ThreadIdentity::ELEVATED_STUDIO_PLUGIN},
+    {ThreadIdentity::COM.id, &ThreadIdentity::COM},
+    {ThreadIdentity::WEB_SERVICE.id, &ThreadIdentity::WEB_SERVICE},
+    {ThreadIdentity::REPLICATOR.id, &ThreadIdentity::REPLICATOR},
+    {ThreadIdentity::ASSISTANT.id, &ThreadIdentity::ASSISTANT},
+    {ThreadIdentity::OPEN_CLOUD_SESSION.id, &ThreadIdentity::OPEN_CLOUD_SESSION},
+    {ThreadIdentity::TESTING_GAME_SCRIPT.id, &ThreadIdentity::TESTING_GAME_SCRIPT},
+    {ThreadIdentity::UNDO_STACK.id, &ThreadIdentity::UNDO_STACK},
 };
 
 struct Task {
@@ -65,7 +118,7 @@ struct Task {
     Feedback feedback;
     OnKill on_kill;
 
-    ThreadCapability capability = NONE;
+    const ThreadIdentity* identity = &ThreadIdentity::GAME_SCRIPT;
 
     struct {
         bool open = false;
@@ -156,7 +209,6 @@ public:
 #define getTask(thread) (static_cast<Task*>(lua_getthreaddata(thread)))
 
 const char* taskStatusTostring(TaskStatus status);
-const char* capabilityTostring(ThreadCapability capability);
 
 void open_tasklib(lua_State* L);
 

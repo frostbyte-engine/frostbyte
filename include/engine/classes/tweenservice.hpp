@@ -34,7 +34,6 @@ struct TweenObject {
     } reverse_state = NA;
 
     std::shared_ptr<rbxInstance> instance;
-    std::shared_ptr<rbxInstance> tween_instance;
     std::vector<Tween> tween_list;
 };
 

@@ -32,6 +32,7 @@
 
 #include "common.hpp"
 #include "console.hpp"
+#include "lstring.h"
 #include "userdata.hpp"
 #include "taskscheduler.hpp"
 #include "ui/instanceexplorer.hpp"
@@ -45,6 +46,7 @@
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <map>
 #include <memory>
 #include <variant>
@@ -78,7 +80,7 @@ rbxInstance::rbxInstance(std::shared_ptr<rbxClass> _class) : _class(_class) {}
 // lua_State* rbxInstance::destructorL = nullptr;
 
 rbxInstance::~rbxInstance() {
-    Console::ScriptConsole.debug("destroying instance...");
+    Console::ScriptConsole.debugf("destroying instance %s...", getValue<std::string>("ClassName").c_str());
 
     /*
     // FIXME: we need to free events at some point, but the below code doesn't work because L is not guaranteed to allowstack manipulation
@@ -302,7 +304,13 @@ rbxValueVariant& getInstanceValueVariant(std::shared_ptr<rbxInstance> instance, 
 
 // TODO: we should probably use this in Instance __newindex if we can
 rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& reference) {
-    if (std::holds_alternative<bool>(reference))
+    if (std::holds_alternative<void*>(reference)) {
+        // tolightuserdata checks the type, so we can avoid redundant checks by not using checktype
+        void* ud = lua_tolightuserdata(L, idx);
+        if (!ud)
+            luaL_typeerror(L, idx, "userdata");
+        return ud;
+    } else if (std::holds_alternative<bool>(reference))
         return luaL_checkboolean(L, idx);
     else if (std::holds_alternative<int32_t>(reference)) {
         return static_cast<int32_t>(luaL_checkinteger(L, idx));
@@ -433,7 +441,8 @@ void setInstanceValueFromVariant(std::shared_ptr<rbxInstance> instance, lua_Stat
     #define handleType(type) if (std::holds_alternative<type>(value))                           \
         setInstanceValue<type>(instance, L, name, std::get<type>(value), dont_report_changed);  \
 
-    handleType(bool)
+    handleType(void*)
+    else handleType(bool)
     else handleType(int32_t)
     else handleType(int64_t)
     else handleType(float)
@@ -514,6 +523,36 @@ int getAttributeChangedSignal(lua_State* L, std::shared_ptr<rbxInstance> instanc
 
     return 1;
 }
+
+// from Lexer.cpp
+inline bool isAlpha(char ch) {
+    // use or trick to convert to lower case and unsigned comparison to do range check
+    return unsigned((ch | ' ') - 'a') < 26;
+}
+inline bool isDigit(char ch) {
+    return unsigned(ch - '0') < 10;
+}
+inline bool isQueryString(char ch) {
+    return isAlpha(ch) || isDigit(ch) || ch == '_' || ch == '-';
+}
+
+int queryReadString(char* buf, const char* selector) {
+    int count = 0;
+    for (char ch = *selector; ch; selector++) {
+        if (!isQueryString(ch))
+            goto END;
+
+        // NOTE: this should not be possible since lua strings cannot get this high.. do we keep this?
+        if (count + 1 >= MAXSSIZE)
+            goto END;
+
+        buf[count++] = ch;
+    }
+
+    END:
+    return count;
+}
+
 namespace rbxInstance_methods {
     static int clearAllChildren(lua_State* L) {
         auto instance = lua_checkinstance(L, 1);
@@ -751,6 +790,130 @@ namespace rbxInstance_methods {
             });
         }, true);
     }
+
+    // static int queryDescendants(lua_State* L) {
+    //     auto instance = lua_checkinstance(L, 1);
+    //     const char* selector = luaL_checkstring(L, 2);
+
+    //     const char* original = selector;
+
+    //     if (!*selector) {
+    //         lua_newtable(L);
+    //         return 1;
+    //     }
+
+    //     struct {
+    //         std::string classname;
+    //         std::vector<std::string> tag;
+    //         std::string name;
+    //         std::unordered_map<std::string, rbxValueVariant> member_values;
+    //         std::vector<std::string> attributes;
+    //         std::unordered_map<std::string, rbxValueVariant> attribute_values;
+    //     } Query;
+    //     char buf[MAXSSIZE];
+    //     memset(buf, 0, sizeof(char) * MAXSSIZE);
+
+    //     // skip initial whitespace
+    //     for (char ch = *selector; ch; selector++) {
+    //         switch (ch) {
+    //             case ' ':
+    //             case '\t':
+    //             case '\n':
+    //                 continue;
+    //             default:
+    //                 break;
+    //         }
+    //     }
+
+    //     // TODO: unexpected trailing character for unrecognized characters *after* parsing a string
+    //     for (char ch = *selector; ch; selector++) {
+    //         switch (ch) {
+    //             case '.':
+    //                 selector++;
+    //                 if (queryReadString(buf, selector)) {
+    //                     Query.tag.push_back(buf);
+    //                     memset(buf, 0, sizeof(char) * MAXSSIZE);
+    //                 } else
+    //                     luaL_error(L, "Expected identifier for a tag");
+    //                 break;
+    //             case '#':
+    //                 selector++;
+    //                 if (queryReadString(buf, selector)) {
+    //                     // TODO: if you pass more than one name, the name filter becomes completely void (even if you pass, say, three as in #foo#bar#foo)
+    //                     Query.name.assign(buf);
+    //                     memset(buf, 0, sizeof(char) * MAXSSIZE);
+    //                 } else
+    //                     luaL_error(L, "Expected identifier for a name");
+    //                 break;
+    //             case '[': {
+    //                 selector++;
+    //                 bool is_attribute = false;
+    //                 if (*selector && *selector == '$') {
+    //                     selector++;
+    //                     is_attribute = true;
+    //                 }
+
+    //                 std::string left;
+    //                 std::string right;
+
+    //                 int count = 0;
+    //                 for (char ch = *selector; ch; selector++) {
+    //                     if (ch == ']') {
+    //                         break;
+    //                     } else if (ch == '=') {
+    //                         break;
+    //                     } else if (ch == ' ' || ch == '\t' || ch == '\n')
+    //                         break;
+
+    //                     // NOTE: this should not be possible since lua strings cannot get this high.. do we keep this?
+    //                     if (count + 1 >= MAXSSIZE)
+    //                         goto END;
+
+    //                     buf[count++] = ch;
+    //                 }
+
+    //                 END:
+    //                 if (!count)
+    //                     luaL_error(L, "Expected identifier for a %s name", is_attribute ? "attribute" : "property");
+    //                 break;
+    //             }
+    //             case ' ':
+    //             case '\t':
+    //             case '\n': // TODO: QueryDescendants("#foo\n#bar") will actually return neither foo nor bar nor "foo\n", but continuing here makes it match both foo and bar
+    //                 continue;
+    //         }
+    //         if (isQueryString(ch)) {
+    //             if (queryReadString(buf, selector))
+    //                 Query.classname.assign(buf);
+    //             else
+    //                 luaL_error(L, "Failed to read value for classname");
+    //         }
+    //     }
+
+    //     auto descendants = getDescendants(instance);
+    //     descendants.erase(std::remove_if(descendants.begin(), descendants.end(), [&Query] (std::weak_ptr<rbxInstance>& a) {
+    //         if (auto instance = a.lock()) {
+    //             if (!Query.name.empty() && instance->getValue<std::string>(PROP_INSTANCE_NAME) != Query.name)
+    //                 return true;
+    //             if (!Query.classname.empty() && !instance->isA(Query.classname.c_str()))
+    //                 return true;
+    //             // TODO: CollectionService
+    //             // TODO: member_values
+
+    //             return false;
+    //         }
+    //         return true;
+    //     }));
+
+    //     lua_createtable(L, descendants.size(), 0);
+
+    //     for (size_t i = 0; i < descendants.size(); i++) {
+    //         lua_pushinstance(L, descendants[i]);
+    //         lua_rawseti(L, -2, i + 1);
+    //     }
+
+    //     return 1;
+    // }
 }; // namespace rbxInstance_methods
 
 int rbxInstance__tostring(lua_State* L) {
@@ -783,7 +946,9 @@ int pushInstanceValue(lua_State* L, rbxValueVariant& value) {
     if (std::holds_alternative<std::monostate>(value))
         lua_pushnil(L);
     else {
-        if (std::holds_alternative<bool>(value))
+        if (std::holds_alternative<void*>(value))
+            lua_pushlightuserdata(L, std::get<void*>(value));
+        else if (std::holds_alternative<bool>(value))
             lua_pushboolean(L, std::get<bool>(value));
         else if (std::holds_alternative<int32_t>(value))
             lua_pushinteger(L, std::get<int32_t>(value));
@@ -1603,6 +1768,7 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
     rbxClass::class_map["Instance"]->methods.at("IsDescendantOf").func = rbxInstance_methods::isDescendantOf;
     rbxClass::class_map["Instance"]->methods.at("Remove").func = rbxInstance_methods::remove;
     rbxClass::class_map["Instance"]->methods.at("WaitForChild").func = rbxInstance_methods::waitForChild;
+    // rbxClass::class_map["Instance"]->methods.at("QueryDescendants").func = rbxInstance_methods::queryDescendants;
 
     // metatable
     userdata::newClassMetatable(L, userdata::Instance);

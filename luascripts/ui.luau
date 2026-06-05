@@ -51,43 +51,49 @@ textbox2.TextSize = 30
 --     print("ended input", input.UserInputType)
 -- end)
 
--- local function dragify(Frame)
---     local dragToggle = nil
---     local dragInput = nil
---     local dragStart = nil
+local function dragify(Frame)
+    local dragToggle = nil
+    local dragInput = nil
+    local dragStart = nil
 
---     function updateInput(input)
---         local Delta = input.Position - dragStart
---         local Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + Delta.X, startPos.Y.Scale, startPos.Y.Offset + Delta.Y)
---         game:GetService("TweenService"):Create(Frame, TweenInfo.new(.4, "Exponential"), {Position = Position}):Play()
---         -- Frame.Position = Position
---     end
+    function updateInput(input)
+        local Delta = input.Position - dragStart
+        local Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + Delta.X, startPos.Y.Scale, startPos.Y.Offset + Delta.Y)
+        game:GetService("TweenService"):Create(Frame, TweenInfo.new(.4, "Exponential"), {Position = Position}):Play()
+        -- Frame.Position = Position
+    end
 
---     Frame.InputBegan:Connect(function(input)
---         if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
---             dragToggle = true
---             dragStart = input.Position
---             startPos = Frame.Position
---             input.Changed:Connect(function()
---                 if (input.UserInputState == Enum.UserInputState.End) then
---                     dragToggle = false
---                 end
---             end)
---         end
---     end)
+    local con1 = Frame.InputBegan:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+            dragToggle = true
+            dragStart = input.Position
+            startPos = Frame.Position
+            input.Changed:Connect(function()
+                if (input.UserInputState == Enum.UserInputState.End) then
+                    dragToggle = false
+                end
+            end)
+        end
+    end)
 
---     Frame.InputChanged:Connect(function(input)
---         if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
---             dragInput = input
---         end
---     end)
+    local con2 = Frame.InputChanged:Connect(function(input)
+        if (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            dragInput = input
+        end
+    end)
 
---     game:GetService("UserInputService").InputChanged:Connect(function(input)
---         if (input == dragInput and dragToggle) then
---         -- if (input.UserInputType == dragInput.UserInputType and dragToggle) then
---             updateInput(input)
---         end
---     end)
--- end
+    local con3 = game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if (input == dragInput and dragToggle) then
+        -- if (input.UserInputType == dragInput.UserInputType and dragToggle) then
+            updateInput(input)
+        end
+    end)
 
--- dragify(main_frame)
+    task.delay(3, function()
+    con1:Disconnect()
+    con2:Disconnect()
+    con3:Disconnect()
+    end)
+end
+
+dragify(main_frame)
