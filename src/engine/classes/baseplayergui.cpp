@@ -320,7 +320,6 @@ void renderGuiObject(lua_State* L, std::shared_ptr<rbxInstance> instance, Vector
         );
 
         // TODO: use a std::set if stable sort is still possible (see drawingimmediate)
-        // TODO: LayoutOrder?
         std::stable_sort(sorted_children.begin(), sorted_children.end(), [] (std::shared_ptr<rbxInstance> a, std::shared_ptr<rbxInstance> b) {
             if (a->isA("GuiObject") && b->isA("GuiObject"))
                 return getInstanceValue<int>(a, "ZIndex") < getInstanceValue<int>(b, "ZIndex");
