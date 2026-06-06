@@ -1087,6 +1087,7 @@ const char* getOptionalInstanceName(std::shared_ptr<rbxInstance> instance) {
     return getInstanceValue<std::string>(instance, PROP_INSTANCE_NAME).c_str();
 }
 
+// TODO: disallow setting parent from within a descendantremoving signal fire.. I think this is best done via setting a variable to true at the beginning of the function and false at the end an error if that variable was true
 void setInstanceParent(lua_State* L, std::shared_ptr<rbxInstance> instance, std::shared_ptr<rbxInstance> new_parent, bool dont_remove_from_old_parent_children, bool dont_set_value) {
     std::shared_ptr<rbxInstance> old_parent = getInstanceValue<std::shared_ptr<rbxInstance>>(instance, PROP_INSTANCE_PARENT);
 
@@ -1566,8 +1567,6 @@ static int fr_gethui(lua_State* L) {
 }
 
 void rbxInstanceSetup(lua_State* L, std::string api_dump) {
-    rbxInstance::destructorL = TaskScheduler::newThread(L, [] (std::string error) { Console::ScriptConsole.error(error); });
-
     // instancelookup
     newweaktable(L);
     lua_setfield(L, LUA_REGISTRYINDEX, INSTANCELOOKUP);

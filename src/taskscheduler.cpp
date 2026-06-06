@@ -275,7 +275,7 @@ void TaskScheduler::startFunctionOnNewThread(lua_State* L, Feedback feedback, in
     tryResumeThreadRaw(thread);
 }
 
-void TaskScheduler::startCodeOnNewThread(lua_State* L, const char* chunk_name, const char* code, size_t code_size, Feedback feedback, OnKill on_kill, Console* console) {
+void TaskScheduler::startCodeOnNewThread(lua_State* L, const char* chunk_name, const char* code, size_t code_size, const ThreadIdentity* identity, Feedback feedback, OnKill on_kill, Console* console) {
     size_t bytecode_size = 0;
     char* bytecode = luau_compile(code, code_size, NULL, &bytecode_size);
     if (!bytecode)
@@ -299,6 +299,7 @@ void TaskScheduler::startCodeOnNewThread(lua_State* L, const char* chunk_name, c
 
     Task* task = getTask(thread);
     task->arg_count = 0;
+    if (identity) task->identity = identity;
     if (console) task->console = console;
 
     tryResumeThreadRaw(thread);

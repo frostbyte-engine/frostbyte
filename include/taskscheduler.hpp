@@ -196,7 +196,7 @@ public:
 
     // TODO: the api here is inconsistent (console instead of on_kill) since we only use this function in one place (tests)
     static void startFunctionOnNewThread(lua_State* L, Feedback feedback, int arg_count = 0, Console* console = nullptr);
-    static void startCodeOnNewThread(lua_State* L, const char* chunk_name, const char* code, size_t code_size, Feedback feedback, OnKill on_kill = nullptr, Console* console = nullptr);
+    static void startCodeOnNewThread(lua_State* L, const char* chunk_name, const char* code, size_t code_size, const ThreadIdentity* identity, Feedback feedback, OnKill on_kill = nullptr, Console* console = nullptr);
 
     static int yieldThread(lua_State* thread);
     static int yieldForWork(lua_State* thread, YieldFunction callback, bool threaded);

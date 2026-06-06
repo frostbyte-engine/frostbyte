@@ -103,4 +103,25 @@ void ImGui_DragUDim2(const char* name, UDim2& udim2, float speed, float min, flo
     udim2.y.offset = v[3];
 }
 
+bool ImGui_ThreadIdentityCombo(int* id) {
+    static const char* identity_item_list[] = {
+        "Anonymous (0)",
+        "LocalGui (1)",
+        "GameScript (2)",
+        "ElevatedGameScript (3)",
+        "CommandBar (4)",
+        "StudioPlugin (5)",
+        "ElevatedStudioPlugin (6)",
+        "COM (7)",
+        "WebService (8)",
+        "Replicator (9)",
+        "Assistant (10)",
+        "OpenCloudSession (11)",
+        "TestingGameScript (12)",
+        "UndoStack (13)"
+    };
+
+    return ImGui::Combo("Identity", id, identity_item_list, IM_ARRAYSIZE(identity_item_list));
+}
+
 }; // namespace frostbyte

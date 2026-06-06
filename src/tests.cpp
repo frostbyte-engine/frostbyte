@@ -198,7 +198,7 @@ namespace frostbyte {
                 onFinish();
             } else {
                 std::string& code = std::get<std::string>(test.value);
-                TaskScheduler::startCodeOnNewThread(L, "TEST", code.c_str(), code.length(), test_feedbacks[i], [i] {
+                TaskScheduler::startCodeOnNewThread(L, "TEST", code.c_str(), code.length(), nullptr, test_feedbacks[i], [i] {
                     if (!feedback_ran_list[i])
                         test_feedbacks[i](PASS);
                     onFinish();

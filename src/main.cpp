@@ -112,6 +112,7 @@ size_t next_script_editor_tab_index = 0;
 struct ScriptEditorTab {
     bool exists;
     bool newly_created;
+    const ThreadIdentity* identity;
     std::string name;
     std::string code;
 };
@@ -121,7 +122,7 @@ void pushNewScriptEditorTab(std::string contents) {
     next_script_editor_tab_index++;
     std::string name = "script";
     name.append(std::to_string(next_script_editor_tab_index));
-    script_editor_tab_list.push_back({true, true, name, contents});
+    script_editor_tab_list.push_back({true, true, &ThreadIdentity::GAME_SCRIPT, name, contents});
 }
 void pushNewScriptEditorTab() {
     pushNewScriptEditorTab("print'frostbyte on top'");
@@ -131,9 +132,9 @@ std::string script_editor_save_path;
 std::string script_editor_save_contents;
 std::string_view script_editor_current_contents;
 
-void tryRunCode(lua_State* L, const char* name, const char* code, size_t code_length) {
+void tryRunCode(lua_State* L, const char* name, const char* code, size_t code_length, const ThreadIdentity* identity = nullptr) {
     try {
-        TaskScheduler::startCodeOnNewThread(L, name, code, code_length, [] (std::string error) {
+        TaskScheduler::startCodeOnNewThread(L, name, code, code_length, identity, [] (std::string error) {
             Console::ScriptConsole.error(error);
         });
     } catch(std::exception& e) {
@@ -678,7 +679,11 @@ int main(int argc, char** argv) {
 
     initializeSharedPtrDestructorList(L);
 
+    lua_State* appL = TaskScheduler::newThread(L, [] (std::string error) { Console::ScriptConsole.error(error); });
+    lua_pop(L, 1);
+    Console::ScriptConsole.debugf("app state: %p", appL);
     rbxInstanceSetup(L, api_dump);
+    rbxInstance::destructorL = appL;
 
     // the following need to happen after rbxInstance setup
     open_instructionlib(L);
@@ -700,10 +705,6 @@ int main(int argc, char** argv) {
     lua_setreadonly(L, -1, false);
 
     lua_singlestep(L, true); // needed for stephook
-
-    lua_State* appL = TaskScheduler::newThread(L, [] (std::string error) { Console::ScriptConsole.error(error); });
-    lua_pop(L, 1);
-    Console::ScriptConsole.debugf("app state: %p", appL);
 
     lua_State* userL = TaskScheduler::newThread(L, [] (std::string error) { Console::ScriptConsole.error(error); });
     lua_pop(L, 1);
@@ -977,11 +978,16 @@ int main(int argc, char** argv) {
                             script_editor_current_contents = tab.code;
 
                             if (ImGui::Button("Execute"))
-                                tryRunCode(userL, tab.name.c_str(), tab.code.c_str(), tab.code.length());
+                                tryRunCode(userL, tab.name.c_str(), tab.code.c_str(), tab.code.length(), tab.identity);
 
                             ImGui::SameLine();
                             if (ImGui::Button("Clear"))
                                 tab.code.clear();
+
+                            ImGui::SameLine();
+                            int id = tab.identity->id;
+                            if (ImGui_ThreadIdentityCombo(&id))
+                                tab.identity = identity_map.at(id);
 
                             ImGui::SameLine();
                             ImGui::Text("%s", "");
@@ -1132,24 +1138,8 @@ int main(int argc, char** argv) {
                             static const char* status_item_list[] = { "Idle", "Running", "Yielding", "Waiting", "Deferring", "Delaying" };
                             ImGui::Combo("Status", reinterpret_cast<int*>(&task->status), status_item_list, IM_ARRAYSIZE(status_item_list));
 
-                            static const char* identity_item_list[] = {
-                                "Anonymous",
-                                "LocalGui",
-                                "GameScript",
-                                "ElevatedGameScript",
-                                "CommandBar",
-                                "StudioPlugin",
-                                "ElevatedStudioPlugin",
-                                "COM",
-                                "WebService",
-                                "Replicator",
-                                "Assistant",
-                                "OpenCloudSession",
-                                "TestingGameScript",
-                                "UndoStack"
-                            };
                             int id = task->identity->id;
-                            if (ImGui::Combo("Identity", &id, identity_item_list, IM_ARRAYSIZE(identity_item_list)))
+                            if (ImGui_ThreadIdentityCombo(&id))
                                 task->identity = identity_map.at(id);
 
                             const bool is_protected = std::find(protected_thread_list, protected_thread_list_end, thread) != protected_thread_list_end;

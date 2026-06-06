@@ -50,4 +50,6 @@ void ImGui_DragVector3(const char* name, Vector3& vector1, float speed = 0.6f, f
 void ImGui_DragUDim(const char* name, UDim& udim, float speed = 0.6f, float min = -3000.f, float max = 3000.f);
 void ImGui_DragUDim2(const char* name, UDim2& udim2, float speed = 0.6f, float min = -3000.f, float max = 3000.f);
 
+bool ImGui_ThreadIdentityCombo(int* id);
+
 }; // namespace frostbyte
