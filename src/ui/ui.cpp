@@ -123,5 +123,27 @@ bool ImGui_ThreadIdentityCombo(int* id) {
 
     return ImGui::Combo("Identity", id, identity_item_list, IM_ARRAYSIZE(identity_item_list));
 }
+void ImGui_ScriptLanguageCombo(ScriptLanguage** language) {
+    if (ImGui::BeginCombo("Language", (*language)->name)) {
+        for (int i = 0; i < ScriptLanguage::count; i++) {
+            auto item = ScriptLanguage::list[i];
+
+            ImGui::BeginDisabled(!item->enabled);
+            if (ImGui::Selectable(item->name, item == *language))
+                *language = item;
+            ImGui::EndDisabled();
+        }
+
+        ImGui::EndCombo();
+    }
+
+    ImGui::SameLine();
+    if (ImGui::Button("Refresh")) {
+        ScriptLanguage::refresh();
+        // fallback to Luau if the selected language is no longer enabled after refresh
+        if (!(*language)->enabled)
+            *language = &ScriptLanguage::Luau;
+    }
+}
 
 }; // namespace frostbyte

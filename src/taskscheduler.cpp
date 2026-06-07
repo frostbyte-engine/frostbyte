@@ -9,12 +9,13 @@
 #include <thread>
 
 #include "raylib.h"
+#include "scriptlanguage.hpp"
 
 #include "common.hpp"
 
 #include "Luau/Common.h"
+#include "Luau/Compiler.h"
 #include "lua.h"
-#include "luacode.h"
 #include "lualib.h"
 #include "lgc.h"
 
@@ -275,19 +276,18 @@ void TaskScheduler::startFunctionOnNewThread(lua_State* L, Feedback feedback, in
     tryResumeThreadRaw(thread);
 }
 
-void TaskScheduler::startCodeOnNewThread(lua_State* L, const char* chunk_name, const char* code, size_t code_size, const ThreadIdentity* identity, Feedback feedback, OnKill on_kill, Console* console) {
-    size_t bytecode_size = 0;
-    char* bytecode = luau_compile(code, code_size, NULL, &bytecode_size);
-    if (!bytecode)
-        throw std::runtime_error("failed to allocate memory for script bytecode");
+void TaskScheduler::startCodeOnNewThread(lua_State* L, const char* chunk_name, const char* code, size_t code_size, ScriptLanguage* language, const ThreadIdentity* identity, Feedback feedback, OnKill on_kill, Console* console) {
+    std::string code_str(code, code_size);
+
+    if (language)
+        language->convert(code_str);
+
+    std::string bytecode = Luau::compile(code_str);
 
     lua_State* thread = newThread(L, feedback, on_kill);
     lua_pop(L, 1);
 
-    int r = luau_load(thread, chunk_name, bytecode, bytecode_size, 0);
-    free(bytecode);
-
-    if (r) {
+    if (luau_load(thread, chunk_name, bytecode.c_str(), bytecode.size(), 0)) {
         std::string msg = std::string("failed to load chunk: ")
             .append(lua_tostring(thread, -1));
         lua_settop(thread, 0);

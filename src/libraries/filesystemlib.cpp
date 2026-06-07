@@ -15,6 +15,8 @@ namespace frostbyte {
 
 std::string FileSystem::home_path;
 std::string FileSystem::workspace_path;
+std::string FileSystem::bin_path;
+std::string FileSystem::temp_path;
 
 static void checkPath(lua_State* L, const char* path) {
     if (!*path)
@@ -263,7 +265,7 @@ static int fr_dofile(lua_State* L) {
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     std::string bytecode = Luau::compile(content);
-    if (luau_load(L, relative_path, bytecode.data(), bytecode.size(), 0) != 0)
+    if (luau_load(L, relative_path, bytecode.data(), bytecode.size(), 0))
         luaL_error(L, "%s", lua_tostring(L, -1));
 
     int top_before = lua_gettop(L);
@@ -285,7 +287,7 @@ static int fr_loadfile(lua_State* L) {
     std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
     std::string bytecode = Luau::compile(content);
-    if (luau_load(L, relative_path, bytecode.data(), bytecode.size(), 0) == 0)
+    if (!luau_load(L, relative_path, bytecode.data(), bytecode.size(), 0))
         return 1;
 
     lua_pushnil(L);
