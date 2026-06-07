@@ -717,6 +717,8 @@ namespace rbxInstance_methods {
         std::string result;
         std::shared_ptr<rbxInstance> inst = instance;
         do {
+            if (inst == DataModel::instance)
+                break;
             result.insert(result.begin(), '.');
             result.insert(0, getInstanceValue<std::string>(inst, PROP_INSTANCE_NAME));
             inst = getInstanceValue<std::shared_ptr<rbxInstance>>(inst, PROP_INSTANCE_PARENT);
