@@ -38,6 +38,7 @@
 #include "libraries/filesystemlib.hpp"
 #include "libraries/instructionlib.hpp"
 
+#include "sysutils.hpp"
 #include "ui/ui.hpp"
 #include "ui/drawentrylist.hpp"
 #include "ui/instanceexplorer.hpp"
@@ -871,6 +872,9 @@ int main(int argc, char** argv) {
                 ImGui::EndMenu();
             }
 
+            // ImGui::Text("CPU Usage: %f%%", SysUtils::cpu_percent_used);
+            ImGui::Text("RAM Usage: %.2f GB / %.2f GB (%f%%)", SysUtils::physical_memory_used, SysUtils::physical_memory_total, SysUtils::physical_memory_used / SysUtils::physical_memory_total * 100.0);
+
             menu_bar_height = ImGui::GetFrameHeight();
             ImGui::EndMainMenuBar();
         }
@@ -970,12 +974,16 @@ int main(int argc, char** argv) {
                                 "##scriptbox",
                                 &tab.code[0],
                                 tab.code.capacity() + 1,
-                                ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - imgui_frame_height),
+                                ImVec2(-FLT_MIN, ImGui::GetContentRegionAvail().y - imgui_frame_height * 2.f),
                                 ImGuiInputTextFlags_CallbackResize,
                                 imgui_inputTextCallback,
                                 (void*) &tab.code
                             );
                             script_editor_current_contents = tab.code;
+
+                            int id = tab.identity->id;
+                            if (ImGui_ThreadIdentityCombo(&id))
+                                tab.identity = identity_map.at(id);
 
                             if (ImGui::Button("Execute"))
                                 tryRunCode(userL, tab.name.c_str(), tab.code.c_str(), tab.code.length(), tab.identity);
@@ -985,17 +993,12 @@ int main(int argc, char** argv) {
                                 tab.code.clear();
 
                             ImGui::SameLine();
-                            int id = tab.identity->id;
-                            if (ImGui_ThreadIdentityCombo(&id))
-                                tab.identity = identity_map.at(id);
-
-                            ImGui::SameLine();
                             ImGui::Text("%s", "");
                             ImGui::SameLine();
                             if (ImGui::Button("Execute Clipboard")) {
                                 const char* text = GetClipboardText();
                                 if (text)
-                                    tryRunCode(userL, tab.name.c_str(), text, strlen(text));
+                                    tryRunCode(userL, tab.name.c_str(), text, strlen(text), tab.identity);
                                 else
                                     Console::ScriptConsole.warning("Failed to get clipboard contents");
                             }
@@ -1243,6 +1246,8 @@ int main(int argc, char** argv) {
         RunService::heartbeat(appL);
 
         setInstanceValue<double>(Workspace::instance, appL, "DistributedGameTime", lua_clock() - initial_game_time);
+
+        SysUtils::run();
     }
     DataModel::onShutdown(appL);
     game_active = false;

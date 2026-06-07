@@ -9,15 +9,24 @@
 #include "lualib.h"
 
 #include <algorithm>
+#include <unordered_map>
 
 namespace frostbyte {
 
 std::vector<rbxScriptSignal*> signal_list;
+std::unordered_map<rbxScriptSignal*, size_t> signal_list_index_map;
 
 rbxScriptSignal::~rbxScriptSignal() {
-    auto it = std::find(signal_list.begin(), signal_list.end(), this);
-    if (it != signal_list.end())
-        signal_list.erase(it);
+    auto it = signal_list_index_map.find(this);
+    if (it == signal_list_index_map.end()) return;
+
+    size_t index = it->second;
+    rbxScriptSignal*& last = signal_list.back();
+
+    signal_list_index_map[last] = index;
+    signal_list[index] = std::move(last);
+    signal_list.pop_back();
+    signal_list_index_map.erase(it);
 }
 
 void rbxScriptSignal::cleanup() {
@@ -31,6 +40,7 @@ int pushNewRBXScriptSignal(lua_State* L, const char* name) {
     rbxScriptSignal* signal = static_cast<rbxScriptSignal*>(lua_newuserdatatagged(L, sizeof(rbxScriptSignal), userdata::RBXScriptSignal));
     new(signal) rbxScriptSignal();
 
+    signal_list_index_map[signal] = signal_list.size();
     signal_list.push_back(signal);
 
     signal->name.assign(name);
