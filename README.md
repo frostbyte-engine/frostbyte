@@ -76,4 +76,4 @@ Contributions to nongoals may be welcome (ONLY AFTER THE PROJECT IS AT A MORE ST
 
 # LUAU
 frostbyte embeds [Luau](https://github.com/luau-lang/luau). See [luau_LICENSE.txt](luau_LICENSE.txt) for licensing information.
-![](repoassets/luau.svg)
+![](repoassets/luau.png)
