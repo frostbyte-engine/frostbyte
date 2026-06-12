@@ -27,9 +27,9 @@ int main() {
     AddIncludePaths(lib, "./dependencies/Luau/VM/include");
     AddIncludePaths(lib, "./dependencies/Luau/VM/src");
 
-    AddIncludePaths(lib, "./dependencies/rlImGui");
-    AddIncludePaths(lib, "./dependencies/rlImGui/raylib-master/src");
-    AddIncludePaths(lib, "./dependencies/rlImGui/imgui-master");
+    // AddIncludePaths(lib, "../rlImGui");
+    AddIncludePaths(lib, "../rlImGui/raylib-master/src");
+    AddIncludePaths(lib, "../rlImGui/imgui-master");
 
     // LinkSystemLibraries(lib, "m", "stdc++", "raylib", "X11");
 
