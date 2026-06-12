@@ -27,16 +27,16 @@ int main() {
     AddIncludePaths(lib, "./dependencies/luau/VM/include");
     AddIncludePaths(lib, "./dependencies/luau/VM/src");
 
-    // AddIncludePaths(lib, "../../rlImGui");
-    AddIncludePaths(lib, "../../rlImGui/raylib-master/src");
-    AddIncludePaths(lib, "../../rlImGui/imgui-master");
+    // AddIncludePaths(lib, "../rlImGui");
+    AddIncludePaths(lib, "../rlImGui/raylib-master/src");
+    AddIncludePaths(lib, "../rlImGui/imgui-master");
 
     // LinkSystemLibraries(lib, "m", "stdc++", "raylib", "X11");
 
     AddLibraryPaths(lib, "./dependencies/luau/cmake");
     // LinkSystemLibraries(lib, "Luau");
 
-    AddLibraryPaths(lib, "../../rlImGui/bin/Release");
+    AddLibraryPaths(lib, "../rlImGui/bin/Release");
     // LinkSystemLibraries(lib, "rlImGui");
 
     AddLibraryPaths(lib, "./dependencies/curl/cmake/lib");
