@@ -1,10 +1,6 @@
 # frostbyte
 
-frostbyte is an attempt to create a Luau scripting engine that is as close to Roblox's as possible.
-
-creation date: Jun 25, 2025
-
-![](repoassets/showcase1.png)
+This repo contains the engine module for [frostbyte](https://github.com/frostbyte-engine).
 
 # PROJECT STATE
 
@@ -38,41 +34,18 @@ Then just run each script inside the dependencies folder with python:
 ```bash
 cd dependencies
 
-python3 ./build_curl.py & \
-python3 ./build_rlImGui.py & \
-python3 ./build_luau.py
-
-# after rlImGui has fetched imgui
-
-python3 ./build_ImGuiFileDialog.py
+python3 ./build_curl.py & python3 ./build_luau.py
 
 cd ..
 ```
 
-then, to bootstrap mate, compile and run mate.c (note that I target gcc, so clang and msvc may or may not be supported):
+then, compile and run mate.c (note that I target gcc, so clang and msvc may or may not be supported):
 ```bash
 gcc -o mate mate.c
 ./mate
 ```
 
 That's it! To build again, simply run `./mate` just like before and it will detect any changes made and recompile only what's needed.
-
-# GOALS
-* Instance system
-* ~~1:1 Roblox error messages~~
-* intuitive error messages
-* input
-* 2d graphics
-* sound
-* exploit functions (most similar to Synapse)
-
-# NONGOALS
-* 3d graphics
-* networking
-* server (there is only the client and that is where everything exists)
-* rbxl or rbxm parsing
-
-Contributions to nongoals may be welcome (ONLY AFTER THE PROJECT IS AT A MORE STABLE STATE), but they aren't something I will be focusing on.
 
 # LUAU
 frostbyte embeds [Luau](https://github.com/luau-lang/luau). See [luau_LICENSE.txt](luau_LICENSE.txt) for licensing information.
