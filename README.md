@@ -13,6 +13,13 @@ In addition, I am frequently making drastic changes on my local machine before p
 # BUILDING
 NOTE: frostbyte CURRENTLY does _not_ have a process for building neither for or on Windows. It is likely possible to cross compile via mingw, but that would require manual steps.
 
+First clone the repo and initialize submodules:
+```bash
+git clone https://github.com/frostbyte-engine/frostbyte.git
+cd frostbyte
+git submodule update --init --recursive
+```
+
 frostbyte uses [mate.h](https://github.com/TomasBorquez/mate.h/) for its core build system, along with some python files to build the dependencies.
 <br>
 To build dependencies, first ensure you have their respective dependencies installed. You can usually find this on each project page, but here is a command you can run on Ubuntu for reference:
@@ -45,6 +52,8 @@ gcc -o mate mate.c
 ./mate
 ```
 
+You should now have a `build/libfrostbyte.a` file.
+<br>
 That's it! To build again, simply run `./mate` just like before and it will detect any changes made and recompile only what's needed.
 
 # LUAU
