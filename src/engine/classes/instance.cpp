@@ -33,6 +33,7 @@
 
 #include "common.hpp"
 #include "console.hpp"
+#include "frostbyte.hpp"
 #include "lstring.h"
 #include "userdata.hpp"
 #include "taskscheduler.hpp"
@@ -83,7 +84,7 @@ lua_State* rbxInstance::destructorL = nullptr;
 rbxInstance::~rbxInstance() {
     Console::ScriptConsole.debugf("destroying instance %s...", getValue<std::string>("ClassName").c_str());
 
-    if (game_active && destructorL && getTask(destructorL)) {
+    if (Frostbyte::isRunning() && destructorL && getTask(destructorL)) {
         auto global = destructorL->global;
         int threshold = global->GCthreshold;
         global->GCthreshold = SIZE_MAX;

@@ -103,6 +103,4 @@ std::string sha1ToString(unsigned int* hashed);
 std::string getStackTrace(lua_State* L);
 std::string getErrorMessage(lua_State* L);
 
-extern bool game_active;
-
 }; // namespace frostbyte

@@ -188,7 +188,7 @@ static int fr_wait(lua_State* L) {
 
         yield.finish([now, before] (lua_State* L) {
             lua_pushnumber(L, static_cast<std::chrono::duration<double>>(now - before).count());
-            lua_pushnumber(L, lua_clock() - TaskScheduler::initial_client_time);
+            lua_pushnumber(L, lua_clock() - TaskScheduler::init_time);
             return 2;
         });
     }, true);

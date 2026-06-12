@@ -16,7 +16,6 @@
 
 #include <map>
 #include <queue>
-#include <stdexcept>
 
 namespace frostbyte {
 
@@ -318,6 +317,7 @@ void UserInputService::signalMouseMovement(std::shared_ptr<rbxInstance> instance
 
 int global_mouse_wheel = 0;
 bool UserInputService::is_window_focused = false;
+bool UserInputService::any_imgui = false;
 Vector2 UserInputService::mouse_position = GetMousePosition();
 Vector2 UserInputService::mouse_delta{ 0.f, 0.f };
 std::weak_ptr<rbxInstance> last_input;
@@ -355,7 +355,7 @@ bool UserInputService::isTextBoxFocused(std::shared_ptr<rbxInstance> textbox) {
     return false;
 }
 
-void UserInputService::process(lua_State *L, bool anyImGui) {
+void UserInputService::process(lua_State *L) {
     UserInputService::mouse_delta = GetMouseDelta();
     UserInputService::mouse_position = GetMousePosition();
     const Vector2 mouse_wheel_vector = GetMouseWheelMoveV();
@@ -490,7 +490,7 @@ void UserInputService::process(lua_State *L, bool anyImGui) {
                 break;
         }
 
-        if (anyImGui) {
+        if (any_imgui) {
             switch (event.type) {
                 case InputEvent::MouseClick:
                     if (event.state == InputBegan)

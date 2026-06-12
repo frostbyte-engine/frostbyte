@@ -165,7 +165,7 @@ class TaskScheduler {
     static void killThreadUnlocked(lua_State* thread);
 public:
     static bool sandboxing;
-    static double initial_client_time;
+    static double init_time;
 
     static void setup(lua_State* L);
 
@@ -206,7 +206,7 @@ public:
     static void cleanup();
 };
 
-#define getTask(thread) (static_cast<Task*>(lua_getthreaddata(thread)))
+Task* getTask(lua_State* thread);
 
 const char* taskStatusTostring(TaskStatus status);
 

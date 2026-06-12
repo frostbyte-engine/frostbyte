@@ -373,7 +373,7 @@ void fireMouseMovementSignal(lua_State* L, Vector2& mouse, std::shared_ptr<rbxIn
     lua_call(L, 3, 0);
 }
 
-void rbxInstance_BasePlayerGui_render(lua_State *L, bool anyImGui) {
+void rbxInstance_BasePlayerGui_render(lua_State *L) {
     next_clickable_instance.reset();
     next_topmost_instance.reset();
     next_gui_objects_hovered.clear();
@@ -399,7 +399,7 @@ void rbxInstance_BasePlayerGui_render(lua_State *L, bool anyImGui) {
 
     // render objects
     for (size_t i = 0; i < render_list.size(); i++)
-        renderGuiObject(L, render_list[i], mouse, Vector2Zero, anyImGui);
+        renderGuiObject(L, render_list[i], mouse, Vector2Zero, UserInputService::any_imgui);
 
     clickable_instance = next_clickable_instance;
     topmost_instance = next_topmost_instance;

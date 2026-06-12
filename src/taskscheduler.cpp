@@ -47,6 +47,10 @@ const ThreadIdentity ThreadIdentity::OPEN_CLOUD_SESSION     (11, ThreadCapabilit
 const ThreadIdentity ThreadIdentity::TESTING_GAME_SCRIPT    (12, ThreadCapability::INTERNAL_TEST.flag                                                                                                                                                                                         , "TestingGameScript");
 const ThreadIdentity ThreadIdentity::UNDO_STACK             (13, ThreadCapability::WRITE_PLAYER.flag | ThreadCapability::ROBLOX_SCRIPT.flag                                                                                                                                                   , "UndoStack");
 
+Task* getTask(lua_State* thread) {
+    return static_cast<Task*>(lua_getthreaddata(thread));
+}
+
 const char* taskStatusTostring(TaskStatus status) {
     switch (status) {
         case IDLE:
@@ -67,7 +71,7 @@ const char* taskStatusTostring(TaskStatus status) {
 };
 
 bool TaskScheduler::sandboxing = true;
-double TaskScheduler::initial_client_time = 0; // gets set in main
+double TaskScheduler::init_time = 0; // gets set in frostbyte.cpp
 
 int TaskScheduler::target_fps = 240;
 // std::shared_mutex TaskScheduler::target_fps_mutex;
