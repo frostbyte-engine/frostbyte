@@ -10,7 +10,7 @@ In addition, I am frequently making drastic changes on my local machine before p
 
 [Issues](../../issues), however, usually closely match the project's real state.
 
-# BUILDING
+# BUILDING THE MODULE
 NOTE: frostbyte CURRENTLY does _not_ have a process for building neither for or on Windows. It is likely possible to cross compile via mingw, but that would require manual steps.
 
 First clone the repo and initialize submodules:
@@ -39,6 +39,7 @@ sudo apt-get install cmake build-essential git \
 ```
 Then just run each script inside the dependencies folder with python:
 ```bash
+# inside ./frostbyte
 cd dependencies
 
 python3 ./build_curl.py & python3 ./build_luau.py
@@ -48,13 +49,29 @@ cd ..
 
 then, compile and run mate.c (note that I target gcc, so clang and msvc may or may not be supported):
 ```bash
+#inside ./frostbyte
 gcc -o mate mate.c
 ./mate
 ```
 
-You should now have a `build/libfrostbyte.a` file.
+You should now have a `frostbyte/build/libfrostbyte.a` file.
 <br>
-That's it! To build again, simply run `./mate` just like before and it will detect any changes made and recompile only what's needed.
+To build again, simply run `./mate` just like before and it will detect any changes made and recompile only what's needed.
+
+# BUILDING THE DESKTOP APPLICATION
+```bash
+#inside ./frostbyte-desktop
+cd dependencies
+
+python3 ./build_rlImGui.py & python3 ./build_ImGuiFileDialog.py
+
+cd ..
+
+gcc -o mate mate.c
+./mate
+```
+
+You should now have a `frostbyte-desktop/build/frostbyte` file.
 
 # LUAU
 frostbyte embeds [Luau](https://github.com/luau-lang/luau). See [luau_LICENSE.txt](luau_LICENSE.txt) for licensing information.
