@@ -2,6 +2,7 @@
 #include <cstring>
 
 // us
+#include "imgui.h"
 #include "imguitheme.hpp"
 
 // frostbyte
@@ -130,53 +131,7 @@ void tryRunCode(lua_State* L, const char* name, const char* code, size_t code_le
     }
 }
 
-int main(int argc, char** argv) {
-    if (argc < 1) {
-        displayHelp();
-        return 1;
-    }
-
-    frostbyte::FrostbyteConfiguration configuration;
-
-    for (unsigned i = 1; i < (unsigned) argc; i++) {
-        const char* arg = argv[i];
-        if (strequal(arg, "-h") || strequal(arg, "--help")) {
-            displayHelp();
-            return 0;
-        } else if (strequal(arg, "--nosandbox"))
-            configuration.sandbox_enabled = false;
-        else {
-            fprintf(stderr, "ERROR: unrecognized option '%s'\n", arg);
-            return 1;
-        }
-    }
-
-    const char* user_home = getenv("HOME");
-    if (user_home == NULL) {
-        fprintf(stderr, "ERROR: failed to get HOME environment variable\n");
-        return 1;
-    }
-
-    std::string home_path = std::string(user_home);
-    home_path.append("/frostbyte/");
-
-    configuration.home_path = home_path.c_str();
-
-    configuration.initializeWindow = []() {
-        SetTraceLogLevel(LOG_WARNING);
-        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-        InitWindow(800, 600, "frostbyte");
-        SetExitKey(KEY_NULL);
-        SetTargetFPS(frostbyte::TaskScheduler::target_fps);
-
-        rlImGuiSetup(true);
-    };
-    configuration.cleanupWindow = []() {
-        rlImGuiShutdown();
-
-        CloseWindow();
-    };
-
+bool app(frostbyte::FrostbyteConfiguration& configuration) {
     try {
         frostbyte::Frostbyte::initialize(configuration);
     } catch (std::exception& e) {
@@ -223,7 +178,10 @@ int main(int argc, char** argv) {
 
     frostbyte::setupTests(&is_running_tests, &all_tests_succeeded);
 
-    while (!WindowShouldClose() && !frostbyte::DataModel::shutdown) {
+    bool close = false;
+    bool restart = false;
+
+    while (!close) {
         frostbyte::Frostbyte::preRender();
 
         frostbyte::Frostbyte::beginRender();
@@ -279,6 +237,11 @@ int main(int argc, char** argv) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Debugging")) {
+                ImGui::BeginDisabled();
+                if (ImGui::Button("Restart Game"))
+                    restart = true;
+                ImGui::EndDisabled();
+
                 ImGui::MenuItem("Enable UserInputService", nullptr, &frostbyte::enable_user_input_service);
                 ImGui::MenuItem("Enable RunService", nullptr, &frostbyte::enable_run_service);
                 ImGui::MenuItem("Enable TweenService", nullptr, &frostbyte::enable_tween_service);
@@ -638,9 +601,67 @@ int main(int argc, char** argv) {
         }
 
         frostbyte::Frostbyte::postRender();
+
+        // close = WindowShouldClose() || frostbyte::DataModel::shutdown || restart;
+        close = WindowShouldClose() || frostbyte::DataModel::shutdown;
     }
 
-    frostbyte::Frostbyte::cleanup();
+    frostbyte::Frostbyte::cleanup(restart);
+
+    return restart;
+}
+
+int main(int argc, char** argv) {
+    if (argc < 1) {
+        displayHelp();
+        return 1;
+    }
+
+    frostbyte::FrostbyteConfiguration configuration;
+
+    for (unsigned i = 1; i < (unsigned) argc; i++) {
+        const char* arg = argv[i];
+        if (strequal(arg, "-h") || strequal(arg, "--help")) {
+            displayHelp();
+            return 0;
+        } else if (strequal(arg, "--nosandbox"))
+            configuration.sandbox_enabled = false;
+        else {
+            fprintf(stderr, "ERROR: unrecognized option '%s'\n", arg);
+            return 1;
+        }
+    }
+
+    const char* user_home = getenv("HOME");
+    if (user_home == NULL) {
+        fprintf(stderr, "ERROR: failed to get HOME environment variable\n");
+        return 1;
+    }
+
+    std::string home_path = std::string(user_home);
+    home_path.append("/frostbyte/");
+
+    configuration.home_path = home_path.c_str();
+
+    configuration.initializeWindow = []() {
+        SetTraceLogLevel(LOG_WARNING);
+        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+        InitWindow(800, 600, "frostbyte");
+        SetExitKey(KEY_NULL);
+        SetTargetFPS(frostbyte::TaskScheduler::target_fps);
+
+        rlImGuiSetup(true);
+    };
+    configuration.cleanupWindow = []() {
+        rlImGuiShutdown();
+
+        CloseWindow();
+    };
+
+    while (true) {
+        if (!app(configuration))
+            break;
+    }
 
     return 0;
 }

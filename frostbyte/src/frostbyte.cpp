@@ -87,11 +87,15 @@ bool Frostbyte::isRunning() {
     return running;
 }
 
+bool Frostbyte::has_started = false;
 lua_State* Frostbyte::L = nullptr;
 lua_State* Frostbyte::appL = nullptr;
 FrostbyteConfiguration Frostbyte::configuration;
 
 void Frostbyte::initialize(FrostbyteConfiguration configuration) {
+    bool had_started = has_started;
+    has_started = true;
+
     Frostbyte::configuration = configuration;
 
     TaskScheduler::init_time = lua_clock();
@@ -137,7 +141,8 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
     }
     }
 
-    curl_global_init(CURL_GLOBAL_DEFAULT);
+    if (!had_started)
+        curl_global_init(CURL_GLOBAL_DEFAULT);
 
     L = luaL_newstate();
     luaL_openlibs(L);
@@ -241,7 +246,7 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
 
     running = true;
 }
-void Frostbyte::cleanup() {
+void Frostbyte::cleanup(bool restart) {
     DataModel::onShutdown(appL);
     running = false;
 
@@ -267,7 +272,8 @@ void Frostbyte::cleanup() {
 
     lua_close(L);
 
-    curl_global_cleanup();
+    if (!restart)
+        curl_global_cleanup();
 }
 
 void Frostbyte::preRender() {

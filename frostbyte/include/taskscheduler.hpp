@@ -85,22 +85,7 @@ public:
     static const ThreadIdentity UNDO_STACK;
 };
 
-static const std::unordered_map<uint8_t, const ThreadIdentity*> identity_map {
-    {ThreadIdentity::ANONYMOUS.id, &ThreadIdentity::ANONYMOUS},
-    {ThreadIdentity::LOCAL_GUI.id, &ThreadIdentity::LOCAL_GUI},
-    {ThreadIdentity::GAME_SCRIPT.id, &ThreadIdentity::GAME_SCRIPT},
-    {ThreadIdentity::ELEVATED_GAME_SCRIPT.id, &ThreadIdentity::ELEVATED_GAME_SCRIPT},
-    {ThreadIdentity::COMMAND_BAR.id, &ThreadIdentity::COMMAND_BAR},
-    {ThreadIdentity::STUDIO_PLUGIN.id, &ThreadIdentity::STUDIO_PLUGIN},
-    {ThreadIdentity::ELEVATED_STUDIO_PLUGIN.id, &ThreadIdentity::ELEVATED_STUDIO_PLUGIN},
-    {ThreadIdentity::COM.id, &ThreadIdentity::COM},
-    {ThreadIdentity::WEB_SERVICE.id, &ThreadIdentity::WEB_SERVICE},
-    {ThreadIdentity::REPLICATOR.id, &ThreadIdentity::REPLICATOR},
-    {ThreadIdentity::ASSISTANT.id, &ThreadIdentity::ASSISTANT},
-    {ThreadIdentity::OPEN_CLOUD_SESSION.id, &ThreadIdentity::OPEN_CLOUD_SESSION},
-    {ThreadIdentity::TESTING_GAME_SCRIPT.id, &ThreadIdentity::TESTING_GAME_SCRIPT},
-    {ThreadIdentity::UNDO_STACK.id, &ThreadIdentity::UNDO_STACK},
-};
+extern const std::unordered_map<uint8_t, const ThreadIdentity*> identity_map;
 
 struct Task {
     TaskStatus status;
