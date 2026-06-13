@@ -1,7 +1,17 @@
 #define MATE_IMPLEMENTATION
 #include "mate.h"
 
-int main() {
+int main(int argc, char** argv) {
+    if (argc < 2) {
+        printf("usage: %s RLIMGUI_PATH\n", argc ? argv[0] : "mate");
+        return 1;
+    }
+
+    const char* rlimgui_path = argv[1];
+    int path_buffer_size = strlen(rlimgui_path) + 20;
+    char* path_buffer = (char*) malloc(path_buffer_size);
+    memset(path_buffer, 0, path_buffer_size);
+
     StartBuild();
 
     StaticLibOptions lib_options = {
@@ -27,26 +37,24 @@ int main() {
     AddIncludePaths(lib, "./dependencies/luau/VM/include");
     AddIncludePaths(lib, "./dependencies/luau/VM/src");
 
-    // AddIncludePaths(lib, "../rlImGui");
-    AddIncludePaths(lib, "../rlImGui/raylib-master/src");
-    AddIncludePaths(lib, "../rlImGui/imgui-master");
+    snprintf(path_buffer, path_buffer_size, "%s/raylib-master/src", rlimgui_path);
+    AddIncludePaths(lib, path_buffer);
+    memset(path_buffer, 0, path_buffer_size);
+    snprintf(path_buffer, path_buffer_size, "%s/imgui-master", rlimgui_path);
+    AddIncludePaths(lib, path_buffer);
 
-    // LinkSystemLibraries(lib, "m", "stdc++", "raylib", "X11");
+    // AddLibraryPaths(lib, "./dependencies/luau/cmake");
 
-    AddLibraryPaths(lib, "./dependencies/luau/cmake");
-    // LinkSystemLibraries(lib, "Luau");
+    memset(path_buffer, 0, path_buffer_size);
+    snprintf(path_buffer, path_buffer_size, "%s/bin/Release", rlimgui_path);
+    AddLibraryPaths(lib, path_buffer);
 
-    AddLibraryPaths(lib, "../rlImGui/bin/Release");
-    // LinkSystemLibraries(lib, "rlImGui");
-
-    AddLibraryPaths(lib, "./dependencies/curl/cmake/lib");
-    // LinkSystemLibraries(lib, "curl");
-
-    // AddLibraryPaths(lib, "./dependencies/ImGuiFileDialog/cmake");
-    // LinkSystemLibraries(lib, "ImGuiFileDialog");
+    // AddLibraryPaths(lib, "./dependencies/curl/cmake/lib");
 
     InstallStaticLib(lib);
 
     EndBuild();
+
+    free(path_buffer);
     return 0;
 }

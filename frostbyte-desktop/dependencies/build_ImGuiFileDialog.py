@@ -1,7 +1,7 @@
 import sys
-sys.path.insert(0, "./frostbyte/dependencies/scripts")
+sys.path.insert(0, "../..")
 
-from utils import *
+from buildutils import *
 
 from pathlib import Path
 

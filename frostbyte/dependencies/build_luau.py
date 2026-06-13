@@ -1,4 +1,8 @@
-from utils import *
+import sys
+sys.path.insert(0, "../..")
+
+from buildutils import *
+
 from pathlib import Path
 
 if __name__ == "__main__":
