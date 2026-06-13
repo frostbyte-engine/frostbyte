@@ -49,10 +49,8 @@ jobs:
 
             popd
           fi
-      - name: build frostbyte mate
-        run: cd frostbyte && gcc -o mate mate.c
-      - name: run frostbyte mate
-        run: cd frostbyte && ./mate
+      - name: build frostbyte
+        run: cd frostbyte && gcc -o mate mate.c && ./mate ../frostbyte-desktop/dependencies/rlImGui
       - name: build frostbyte-desktop dependencies
         run: |
           if [ ! -f "dependencies/built.txt" ]; then
@@ -67,10 +65,8 @@ jobs:
 
             popd
           fi
-      - name: build frostbyte-desktop mate
-        run: cd frostbyte-desktop && gcc -o mate mate.c
-      - name: run frostbyte-desktop mate
-        run: cd frostbyte-desktop && ./mate
+      - name: build frostbyte-desktop
+        run: cd frostbyte-desktop && gcc -o mate mate.c && ./mate ../frostbyte
       - name: create timestamp
         id: timestamp
         run: echo "value=$(date +'%F_%H-%M-%S')" >> $GITHUB_OUTPUT
