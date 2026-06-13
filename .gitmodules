@@ -1,1 +1,19 @@
 
+[submodule "frostbyte/dependencies/curl"]
+	path = frostbyte/dependencies/curl
+	url = https://github.com/curl/curl.git
+[submodule "frostbyte/dependencies/luau"]
+	path = frostbyte/dependencies/luau
+	url = https://github.com/luau-lang/luau.git
+[submodule "frostbyte/dependencies/uuid_v4"]
+	path = frostbyte/dependencies/uuid_v4
+	url = https://github.com/crashoz/uuid_v4.git
+[submodule "frostbyte/dependencies/json"]
+	path = frostbyte/dependencies/json
+	url = https://github.com/nlohmann/json.git
+[submodule "frostbyte-desktop/dependencies/rlImGui"]
+	path = frostbyte-desktop/dependencies/rlImGui
+	url = https://github.com/raylib-extras/rlImGui.git
+[submodule "frostbyte-desktop/dependencies/ImGuiFileDialog"]
+	path = frostbyte-desktop/dependencies/ImGuiFileDialog
+	url = https://github.com/frostbyte-engine/ImGuiFileDialog.git
