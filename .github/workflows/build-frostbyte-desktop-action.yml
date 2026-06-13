@@ -1,0 +1,93 @@
+name: Build frostbyte
+on: [push]
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: check out repository
+        uses: actions/checkout@v5
+      - name: cache for dependencies
+        uses: actions/cache@v4
+        with:
+          path: dependencies
+          key: ${{ runner.os}}-dependencies-${{ hashFiles('dependenciesver.txt') }}
+      - name: install system packages
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev \
+            libx11-dev \
+            libxrandr-dev \
+            libxi-dev \
+            libgl1-mesa-dev \
+            libglu1-mesa-dev \
+            libxcursor-dev \
+            libxinerama-dev \
+            libwayland-dev \
+            libxkbcommon-dev \
+            libpsl-dev
+      - name: update submodules
+        run: git submodule update --init --recursive
+      - name: build frostbyte dependencies
+        run: |
+          if [ ! -f "dependencies/built.txt" ]; then
+            pushd frostbyte/dependencies
+
+            echo "configuring curl"
+            pushd curl
+
+            autoreconf -fi
+            ./configure --with-openssl
+
+            popd
+
+            echo "building frostbyte dependencies"
+
+            python3 ./build_curl.py
+            python3 ./build_luau.py
+
+            echo "built" > ./built.txt
+
+            popd
+          fi
+      - name: build frostbyte mate
+        run: cd frostbyte && gcc -o mate mate.c
+      - name: run frostbyte mate
+        run: cd frostbyte && ./mate
+      - name: build frostbyte-desktop dependencies
+        run: |
+          if [ ! -f "dependencies/built.txt" ]; then
+            pushd frostbyte-desktop/dependencies
+
+            echo "building frostbyte-desktop dependencies"
+
+            python3 ./build_rlImGui.py
+            python3 ./build_ImGuiFileDialog.py
+
+            echo "built" > ./built.txt
+
+            popd
+          fi
+      - name: build frostbyte-desktop mate
+        run: cd frostbyte-desktop && gcc -o mate mate.c
+      - name: run frostbyte-desktop mate
+        run: cd frostbyte-desktop && ./mate
+      - name: create timestamp
+        id: timestamp
+        run: echo "value=$(date +'%F_%H-%M-%S')" >> $GITHUB_OUTPUT
+      - name: create tag
+        run: |
+          git tag frostbyte-build-${{ steps.timestamp.outputs.value }}
+          git push origin frostbyte-build-${{ steps.timestamp.outputs.value }}
+      - name: create release
+        id: create_frostbyte_release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Release frostbyte ${{ steps.timestamp.outputs.value }}
+          tag_name: frostbyte-build-${{ steps.timestamp.outputs.value }}
+          body: ${{ github.sha }}
+          draft: false
+          prerelease: true
+          files: frostbyte-desktop/build/frostbyte
+          token: ${{ secrets.GITHUB_TOKEN }}
+    permissions:
+      contents: write
