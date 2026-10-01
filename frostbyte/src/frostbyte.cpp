@@ -318,7 +318,7 @@ void Frostbyte::preRender() {
 void Frostbyte::beginRender() {
     #ifndef FROSTBYTE_HEADLESS
     BeginDrawing();
-    ClearBackground(DARKGRAY);
+    ClearBackground(background_color);
 
     // gui object render
     if (enable_gui_object_rendering)

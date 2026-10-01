@@ -26,6 +26,7 @@ extern bool httpget_synchronous_argument;
 extern bool runservice_is_server;
 extern bool runservice_is_studio;
 
+extern Color background_color;
 extern bool show_fps;
 extern bool menu_editor_open;
 extern bool menu_console_open;

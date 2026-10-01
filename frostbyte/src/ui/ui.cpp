@@ -11,6 +11,7 @@ Vector2 gui_inset_bottomright{0.f, 0.f};
 bool runservice_is_server = false;
 bool runservice_is_studio = false;
 
+Color background_color{80, 80, 80, 204};
 bool show_fps = false;
 bool menu_editor_open = true;
 bool menu_console_open = true;
