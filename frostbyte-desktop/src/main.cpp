@@ -205,6 +205,10 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("Window")) {
+                ImGui::Text("Background Color");
+                ImGui::SameLine();
+                frostbyte::ImGui_Color4("##Background Color", frostbyte::background_color);
+
                 ImGui::MenuItem("Show FPS", nullptr, &frostbyte::show_fps);
                 ImGui::Separator();
                 ImGui::MenuItem("Script Editor", nullptr, &frostbyte::menu_editor_open);
@@ -626,7 +630,7 @@ int main(int argc, char** argv) {
 
     configuration.initializeWindow = []() {
         SetTraceLogLevel(LOG_WARNING);
-        SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+        SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_TRANSPARENT);
         InitWindow(800, 600, "frostbyte");
         SetExitKey(KEY_NULL);
         SetTargetFPS(frostbyte::TaskScheduler::target_fps);
