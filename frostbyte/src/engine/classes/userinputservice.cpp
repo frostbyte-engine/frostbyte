@@ -11,6 +11,7 @@
 #include "taskscheduler.hpp"
 
 #include "lualib.h"
+#include "ui/ui.hpp"
 
 #include <map>
 #include <queue>
@@ -707,8 +708,8 @@ void UserInputService::process(lua_State *L) {
                     return 1;
                 });
         } else if (event.type == InputEvent::MouseMovement) {
-            setInstanceValue(rbxPlayer::localmouse, L, "X", static_cast<int32_t>(mouse_position.x));
-            setInstanceValue(rbxPlayer::localmouse, L, "Y", static_cast<int32_t>(mouse_position.y));
+            setInstanceValue(rbxPlayer::localmouse, L, "X", static_cast<int32_t>(mouse_position.x - gui_inset_topleft.x), true);
+            setInstanceValue(rbxPlayer::localmouse, L, "Y", static_cast<int32_t>(mouse_position.y - gui_inset_topleft.y), true);
             genericFire(L, rbxPlayer::localmouse, "Move");
         }
 
