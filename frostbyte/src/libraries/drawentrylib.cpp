@@ -1,4 +1,5 @@
 #include "libraries/drawentrylib.hpp"
+#include <algorithm>
 #ifndef FROSTBYTE_HEADLESS
 
 #include "basedrawing.hpp"
@@ -51,6 +52,7 @@ drawEntryConstructor(Quad)
 size_t DrawEntryText::default_font = FontDefault;
 void DrawEntryText::updateTextBounds() {
     text_bounds = MeasureTextEx(*font, text.c_str(), text_size, 0);
+    updateBounds();
 }
 void DrawEntryText::updateFont() {
     font = FontLoader::font_list[font_index];
@@ -73,6 +75,10 @@ void DrawEntryText::updateOutline() {
 
     // outline_position = Vector2{ position.x - 1, position.y };
     // outline_text_size = text_size + 1;
+}
+
+float DrawEntryText::getCenteredX() {
+    return position.x - text_bounds.x / 2.f;
 }
 
 DrawEntryImage::~DrawEntryImage() {
@@ -223,6 +229,8 @@ DrawEntry* DrawEntry::clone(lua_State* L) {
     entry->onZIndexUpdate();
     entry->color = color;
 
+    entry->bounding_rect = bounding_rect;
+
     switch (type) {
         case DrawEntry::DrawTypeLine: {
             DrawEntryLine* this_line = static_cast<DrawEntryLine*>(this);
@@ -306,6 +314,78 @@ DrawEntry* DrawEntry::clone(lua_State* L) {
     }
 
     return entry;
+}
+
+void DrawEntry::updateBounds() {
+    switch (type) {
+        case DrawEntry::DrawTypeLine: {
+            DrawEntryLine* entry_line = static_cast<DrawEntryLine*>(this);
+            float from_x = entry_line->from.x;
+            float from_y = entry_line->from.y;
+            float to_x = entry_line->to.x;
+            float to_y = entry_line->to.y;
+            entry_line->bounding_rect.x = std::min(from_x, to_x);
+            entry_line->bounding_rect.y = std::min(from_y, to_y);
+            entry_line->bounding_rect.width = (from_x > to_x) ? (from_x - to_x) : (to_x - from_x);
+            entry_line->bounding_rect.height = (from_y > to_y) ? (from_y - to_y) : (to_y - from_y);
+            break;
+        }
+        case DrawEntry::DrawTypeText: {
+            DrawEntryText* entry_text = static_cast<DrawEntryText*>(this);
+            entry_text->bounding_rect.x = entry_text->centered ? entry_text->getCenteredX() : entry_text->position.x;
+            entry_text->bounding_rect.y = entry_text->position.y;
+            entry_text->bounding_rect.width = entry_text->text_bounds.x;
+            entry_text->bounding_rect.height = entry_text->text_bounds.y;
+            break;
+        }
+        case DrawEntry::DrawTypeImage: {
+            DrawEntryImage* entry_image = static_cast<DrawEntryImage*>(this);
+            entry_image->bounding_rect.x = entry_image->position.x;
+            entry_image->bounding_rect.y = entry_image->position.y;
+            entry_image->bounding_rect.width = entry_image->size.x;
+            entry_image->bounding_rect.height = entry_image->size.y;
+            break;
+        }
+        case DrawEntry::DrawTypeCircle: {
+            DrawEntryCircle* entry_circle = static_cast<DrawEntryCircle*>(this);
+            entry_circle->bounding_rect.x = entry_circle->center.x - entry_circle->radius;
+            entry_circle->bounding_rect.y = entry_circle->center.y - entry_circle->radius;
+            entry_circle->bounding_rect.width = entry_circle->radius * 2.f;
+            entry_circle->bounding_rect.height = entry_circle->radius * 2.f;
+            break;
+        }
+        case DrawEntry::DrawTypeSquare: {
+            DrawEntrySquare* entry_square = static_cast<DrawEntrySquare*>(this);
+            entry_square->bounding_rect = entry_square->rect;
+            break;
+        }
+        case DrawEntry::DrawTypeTriangle: {
+            DrawEntryTriangle* entry_triangle = static_cast<DrawEntryTriangle*>(this);
+            float min_x = std::min(std::min(entry_triangle->pointa.x, entry_triangle->pointb.x), entry_triangle->pointc.x);
+            float min_y = std::min(std::min(entry_triangle->pointa.y, entry_triangle->pointb.y), entry_triangle->pointc.y);
+            float max_x = std::max(std::max(entry_triangle->pointa.x, entry_triangle->pointb.x), entry_triangle->pointc.x);
+            float max_y = std::max(std::max(entry_triangle->pointa.y, entry_triangle->pointb.y), entry_triangle->pointc.y);
+            entry_triangle->bounding_rect.x = min_x;
+            entry_triangle->bounding_rect.y = min_y;
+            entry_triangle->bounding_rect.width = max_x - min_x;
+            entry_triangle->bounding_rect.height = max_y - min_y;
+            break;
+        }
+        case DrawEntry::DrawTypeQuad: {
+            DrawEntryQuad* entry_quad = static_cast<DrawEntryQuad*>(this);
+            float min_x = std::min(std::min(std::min(entry_quad->pointa.x, entry_quad->pointb.x), entry_quad->pointc.x), entry_quad->pointd.x);
+            float min_y = std::min(std::min(std::min(entry_quad->pointa.y, entry_quad->pointb.y), entry_quad->pointc.y), entry_quad->pointd.y);
+            float max_x = std::max(std::max(std::max(entry_quad->pointa.x, entry_quad->pointb.x), entry_quad->pointc.x), entry_quad->pointd.x);
+            float max_y = std::max(std::max(std::max(entry_quad->pointa.y, entry_quad->pointb.y), entry_quad->pointc.y), entry_quad->pointd.y);
+            entry_quad->bounding_rect.x = min_x;
+            entry_quad->bounding_rect.y = min_y;
+            entry_quad->bounding_rect.width = max_x - min_x;
+            entry_quad->bounding_rect.height = max_y - min_y;
+            break;
+        }
+        default:
+            break;
+    }
 }
 
 static int DrawEntry_getObjects(lua_State* L) {
@@ -597,11 +677,13 @@ int DrawEntry__newindex(lua_State* L) {
                 DrawEntryLine* entry_line = static_cast<DrawEntryLine*>(entry);
                 if (strequal(key, "Thickness"))
                     entry_line->thickness = luaL_checknumber(L, 3);
-                else if (strequal(key, "From"))
+                else if (strequal(key, "From")) {
                     entry_line->from = *lua_checkvector2(L, 3);
-                else if (strequal(key, "To"))
+                    entry_line->updateBounds();
+                } else if (strequal(key, "To")) {
                     entry_line->to = *lua_checkvector2(L, 3);
-                else
+                    entry_line->updateBounds();
+                } else
                     goto INVALID;
 
                 break;
@@ -655,6 +737,7 @@ int DrawEntry__newindex(lua_State* L) {
                     entry_text->position = *lua_checkvector2(L, 3);
                     entry_text->position.y += 2.f;
                     entry_text->updateOutline();
+                    entry_text->updateBounds();
                 } else
                     goto INVALID;
 
@@ -675,9 +758,11 @@ int DrawEntry__newindex(lua_State* L) {
                 else if (strequal(key, "Size")) {
                     entry_image->size = *lua_checkvector2(L, 3);
                     entry_image->resizeImage();
-                } else if (strequal(key, "Position"))
+                    entry_image->updateBounds();
+                } else if (strequal(key, "Position")) {
                     entry_image->position = *lua_checkvector2(L, 3);
-                else if (strequal(key, "Rounding"))
+                    entry_image->updateBounds();
+                } else if (strequal(key, "Rounding"))
                     entry_image->rounding = luaL_checknumber(L, 3);
                 else
                     goto INVALID;
@@ -690,13 +775,15 @@ int DrawEntry__newindex(lua_State* L) {
                     entry_circle->thickness = luaL_checknumber(L, 3);
                 else if (strequal(key, "NumSides"))
                     entry_circle->num_sides = luaL_checknumber(L, 3);
-                else if (strequal(key, "Radius"))
+                else if (strequal(key, "Radius")) {
                     entry_circle->radius = luaL_checknumber(L, 3);
-                else if (strequal(key, "Filled"))
+                    entry_circle->updateBounds();
+                } else if (strequal(key, "Filled"))
                     entry_circle->filled = luaL_checkboolean(L, 3);
-                else if (strequal(key, "Center") || strequal(key, "Position"))
+                else if (strequal(key, "Center") || strequal(key, "Position")) {
                     entry_circle->center = *lua_checkvector2(L, 3);
-                else
+                    entry_circle->updateBounds();
+                } else
                     goto INVALID;
 
                 break;
@@ -709,10 +796,12 @@ int DrawEntry__newindex(lua_State* L) {
                     auto vector = lua_checkvector2(L, 3);
                     entry_square->rect.width = vector->x;
                     entry_square->rect.height = vector->y;
+                    entry_square->updateBounds();
                 } else if (strequal(key, "Position")) {
                     auto vector = lua_checkvector2(L, 3);
                     entry_square->rect.x = vector->x;
                     entry_square->rect.y = vector->y;
+                    entry_square->updateBounds();
                 } else if (strequal(key, "Filled"))
                     entry_square->filled = luaL_checkboolean(L, 3);
                 else if (strequal(key, "Rounding"))
@@ -726,13 +815,16 @@ int DrawEntry__newindex(lua_State* L) {
                 DrawEntryTriangle* entry_triangle = static_cast<DrawEntryTriangle*>(entry);
                 if (strequal(key, "Thickness"))
                     entry_triangle->thickness = luaL_checknumber(L, 3);
-                else if (strequal(key, "PointA"))
+                else if (strequal(key, "PointA")) {
                     entry_triangle->pointa = *lua_checkvector2(L, 3);
-                else if (strequal(key, "PointB"))
+                    entry_triangle->updateBounds();
+                } else if (strequal(key, "PointB")) {
                     entry_triangle->pointb = *lua_checkvector2(L, 3);
-                else if (strequal(key, "PointC"))
+                    entry_triangle->updateBounds();
+                } else if (strequal(key, "PointC")) {
                     entry_triangle->pointc = *lua_checkvector2(L, 3);
-                else if (strequal(key, "Filled"))
+                    entry_triangle->updateBounds();
+                } else if (strequal(key, "Filled"))
                     entry_triangle->filled = luaL_checkboolean(L, 3);
                 else
                     goto INVALID;
@@ -743,15 +835,19 @@ int DrawEntry__newindex(lua_State* L) {
                 DrawEntryQuad* entry_quad = static_cast<DrawEntryQuad*>(entry);
                 if (strequal(key, "Thickness"))
                     entry_quad->thickness = luaL_checknumber(L, 3);
-                else if (strequal(key, "PointA"))
+                else if (strequal(key, "PointA")) {
                     entry_quad->pointa = *lua_checkvector2(L, 3);
-                else if (strequal(key, "PointB"))
+                    entry_quad->updateBounds();
+                } else if (strequal(key, "PointB")) {
                     entry_quad->pointb = *lua_checkvector2(L, 3);
-                else if (strequal(key, "PointC"))
+                    entry_quad->updateBounds();
+                } else if (strequal(key, "PointC")) {
                     entry_quad->pointc = *lua_checkvector2(L, 3);
-                else if (strequal(key, "PointD"))
+                    entry_quad->updateBounds();
+                } else if (strequal(key, "PointD")) {
                     entry_quad->pointd = *lua_checkvector2(L, 3);
-                else if (strequal(key, "Filled"))
+                    entry_quad->updateBounds();
+                } else if (strequal(key, "Filled"))
                     entry_quad->filled = luaL_checkboolean(L, 3);
                 else
                     goto INVALID;
@@ -876,7 +972,7 @@ void DrawEntry::render() {
                 DrawEntryText* entry_text = static_cast<DrawEntryText*>(entry);
                 auto position = entry_text->position;
                 if (entry_text->centered)
-                    position.x -= entry_text->text_bounds.x / 2.f;
+                    position.x = entry_text->getCenteredX();
                 drawingDrawText(&position, entry_text->font, entry_text->text_size, &color, entry_text->outlined, &entry_text->outline_color, entry_text->text);
                 break;
             }

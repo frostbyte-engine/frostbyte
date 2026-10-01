@@ -1,4 +1,5 @@
 #include "ui/drawentrylist.hpp"
+#include "basedrawing.hpp"
 #ifndef FROSTBYTE_HEADLESS
 #include "fontloader.hpp"
 #include "imgui.h"
@@ -14,11 +15,13 @@ DrawEntry* drawentry_list_chosen = nullptr;
 
 // options
 static bool show_text_near_name = true;
+static bool show_bounding_box = true;
 
 void UI_DrawEntryList_render(lua_State *L) {
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("Options")) {
             ImGui::MenuItem("Show Text Near Name", nullptr, &show_text_near_name);
+            ImGui::MenuItem("Show Bounding Box", nullptr, &show_bounding_box);
 
             ImGui::EndMenu();
         }
@@ -117,39 +120,44 @@ void UI_DrawEntryList_render(lua_State *L) {
             entry->onZIndexUpdate();
         ImGui_Color4("Color", entry->color);
 
+        bool update_bounds = false;
         switch (entry->type) {
             case DrawEntry::DrawTypeLine: {
                 DrawEntryLine* entry_line = static_cast<DrawEntryLine*>(entry);
 
                 ImGui::DragScalar("Thickness", ImGuiDataType_Double, &entry_line->thickness);
 
-                ImGui_DragVector2("From", entry_line->from);
-                ImGui_DragVector2("To", entry_line->to);
+                update_bounds |= ImGui_DragVector2("From", entry_line->from);
+                update_bounds |= ImGui_DragVector2("To", entry_line->to);
 
                 break;
             }
             case DrawEntry::DrawTypeText: {
                 DrawEntryText* entry_text = static_cast<DrawEntryText*>(entry);
 
-                // NOTE: explicitly call updateTextBounds because it is usually lazy evaluated via __newindex, and we currently have no way to tell when the string gets updated
-                entry_text->updateTextBounds();
+                bool update_textbounds = false;
 
-                ImGui_STDString("Text", entry_text->text);
+                update_textbounds |= ImGui_STDString("Text", entry_text->text);
                 ImGui::Text("%.f, %.f - TextBounds", entry_text->text_bounds.x, entry_text->text_bounds.y);
-                ImGui::DragScalar("TextSize", ImGuiDataType_Double, &entry_text->text_size);
+                update_textbounds |= ImGui::DragScalar("TextSize", ImGuiDataType_Double, &entry_text->text_size);
 
                 std::vector<const char*> font_list;
                 font_list.reserve(FontLoader::font_name_list.size());
 
                 for (size_t i = 0; i < FontLoader::font_name_list.size(); i++)
                     font_list.push_back(FontLoader::font_name_list[i].c_str());
-                if (ImGui::Combo("Font", reinterpret_cast<int*>(&entry_text->font_index), font_list.data(), FontLoader::font_count))
+                if (ImGui::Combo("Font", reinterpret_cast<int*>(&entry_text->font_index), font_list.data(), FontLoader::font_count)) {
                     entry_text->updateFont();
+                    update_bounds = true;
+                }
 
-                ImGui::Checkbox("Centered", &entry_text->centered);
+                update_bounds |= ImGui::Checkbox("Centered", &entry_text->centered);
                 ImGui::Checkbox("Outlined", &entry_text->outlined);
                 ImGui_Color4("Outline Color", entry_text->outline_color);
-                ImGui_DragVector2("Position", entry_text->position);
+                update_bounds |= ImGui_DragVector2("Position", entry_text->position);
+
+                if (update_textbounds)
+                    entry_text->updateTextBounds();
 
                 break;
             }
@@ -157,8 +165,8 @@ void UI_DrawEntryList_render(lua_State *L) {
                 DrawEntryImage* entry_image = static_cast<DrawEntryImage*>(entry);
 
                 ImGui::Text("%.f, %.f - ImageSize", entry_image->image_size.x, entry_image->image_size.y);
-                ImGui_DragVector2("Size", entry_image->size);
-                ImGui_DragVector2("Position", entry_image->position);
+                update_bounds |= ImGui_DragVector2("Size", entry_image->size);
+                update_bounds |= ImGui_DragVector2("Position", entry_image->position);
                 ImGui::DragScalar("Rounding", ImGuiDataType_Double, &entry_image->rounding);
 
                 break;
@@ -168,9 +176,9 @@ void UI_DrawEntryList_render(lua_State *L) {
 
                 ImGui::DragScalar("Thickness", ImGuiDataType_Double, &entry_circle->thickness);
                 ImGui::DragScalar("NumSides", ImGuiDataType_S32, &entry_circle->num_sides);
-                ImGui::DragScalar("Radius", ImGuiDataType_Double, &entry_circle->radius);
+                update_bounds |= ImGui::DragScalar("Radius", ImGuiDataType_Double, &entry_circle->radius);
                 ImGui::Checkbox("Filled", &entry_circle->filled);
-                ImGui_DragVector2("Center", entry_circle->center);
+                update_bounds |= ImGui_DragVector2("Center", entry_circle->center);
 
                 break;
             }
@@ -181,8 +189,8 @@ void UI_DrawEntryList_render(lua_State *L) {
                 auto& rect = entry_square->rect;
                 Vector2 size{rect.width, rect.height};
                 Vector2 position{rect.x, rect.y};
-                ImGui_DragVector2("Size", size);
-                ImGui_DragVector2("Position", position);
+                update_bounds |= ImGui_DragVector2("Size", size);
+                update_bounds |= ImGui_DragVector2("Position", position);
                 ImGui::DragScalar("Rounding", ImGuiDataType_Double, &entry_square->rounding);
 
                 rect.width = size.x;
@@ -198,9 +206,9 @@ void UI_DrawEntryList_render(lua_State *L) {
                 DrawEntryTriangle* entry_triangle = static_cast<DrawEntryTriangle*>(entry);
 
                 ImGui::DragScalar("Thickness", ImGuiDataType_Double, &entry_triangle->thickness);
-                ImGui_DragVector2("PointA", entry_triangle->pointa);
-                ImGui_DragVector2("PointB", entry_triangle->pointb);
-                ImGui_DragVector2("PointC", entry_triangle->pointc);
+                update_bounds |= ImGui_DragVector2("PointA", entry_triangle->pointa);
+                update_bounds |= ImGui_DragVector2("PointB", entry_triangle->pointb);
+                update_bounds |= ImGui_DragVector2("PointC", entry_triangle->pointc);
                 ImGui::Checkbox("Filled", &entry_triangle->filled);
 
                 break;
@@ -209,10 +217,10 @@ void UI_DrawEntryList_render(lua_State *L) {
                 DrawEntryQuad* entry_quad = static_cast<DrawEntryQuad*>(entry);
 
                 ImGui::DragScalar("Thickness", ImGuiDataType_Double, &entry_quad->thickness);
-                ImGui_DragVector2("PointA", entry_quad->pointa);
-                ImGui_DragVector2("PointB", entry_quad->pointb);
-                ImGui_DragVector2("PointC", entry_quad->pointc);
-                ImGui_DragVector2("PointD", entry_quad->pointd);
+                update_bounds |= ImGui_DragVector2("PointA", entry_quad->pointa);
+                update_bounds |= ImGui_DragVector2("PointB", entry_quad->pointb);
+                update_bounds |= ImGui_DragVector2("PointC", entry_quad->pointc);
+                update_bounds |= ImGui_DragVector2("PointD", entry_quad->pointd);
                 ImGui::Checkbox("Filled", &entry_quad->filled);
 
                 break;
@@ -223,6 +231,9 @@ void UI_DrawEntryList_render(lua_State *L) {
             }
         }
 
+        if (update_bounds)
+            entry->updateBounds();
+
         ImGui::SeparatorText("Methods");
 
         if (ImGui::Button("Destroy"))
@@ -231,6 +242,11 @@ void UI_DrawEntryList_render(lua_State *L) {
             drawentry_list_chosen = entry->clone(L);
 
         ImGui::EndChild();
+    }
+
+    if (show_bounding_box && drawentry_list_chosen) {
+        Color color{45, 160, 220, 255};
+        drawingDrawRectangle(&drawentry_list_chosen->bounding_rect, &color, 0.f, 2.f, false);
     }
 }
 
