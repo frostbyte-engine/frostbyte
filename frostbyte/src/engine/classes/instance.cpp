@@ -6,6 +6,7 @@
 #include "engine/classes/datamodel.hpp"
 #include "engine/classes/encodingservice.hpp"
 #include "engine/classes/guiobject.hpp"
+#include "engine/classes/guiservice.hpp"
 #include "engine/classes/httpservice.hpp"
 #include "engine/classes/layercollector.hpp"
 #include "engine/classes/players.hpp"
@@ -1967,6 +1968,7 @@ void rbxInstanceSetup(lua_State* L, std::string api_dump) {
     RunService::instance = ServiceProvider::getService(L, datamodel, "RunService");
 
     rbxInstance_Camera_init(L, workspace);
+    rbxInstance_GuiService_init();
     rbxInstance_TweenService_init();
     rbxInstance_TweenBase_init();
     rbxInstance_TextService_init();

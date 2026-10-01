@@ -9,6 +9,7 @@
 #include "frostbyte.hpp"
 
 // frostbyte /
+#include "interface.hpp"
 #include "scriptlanguage.hpp"
 #include "taskscheduler.hpp"
 
@@ -195,18 +196,19 @@ int main(int argc, char** argv) {
     } else if (input_code)
         tryRunCode(userL, "code", input_code, strlen(input_code), input_language);
     else {
+        frostbyteserver::Interface::initialize();
+
         std::string input;
         input.reserve(50);
 
-        // TODO: use isocline
-        while (!stop && !frostbyte::DataModel::shutdown) {
-            printf("Enter code (or type exit): ");
-            std::getline(std::cin, input);
+        while (!stop && !frostbyte::DataModel::shutdown && !frostbyteserver::Interface::wantsQuit()) {
+            frostbyteserver::Interface::mainloop(input);
             if (input == "exit")
                 break;
 
             tryRunCode(userL, "code", input.c_str(), input.size(), input_language);
         }
+        frostbyteserver::Interface::cleanup();
     }
 
     if (!stop)

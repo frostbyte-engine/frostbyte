@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
     AddLibraryPaths(executable, path_buffer);
     LinkSystemLibraries(executable, "frostbyte-headless");
 
-    LinkSystemLibraries(executable, "m", "stdc++", "crypto", "blake3", "zstd");
+    LinkSystemLibraries(executable, "m", "stdc++", "crypto", "blake3", "zstd", "ncurses");
 
     setpath(path_buffer, path_buffer_size, frostbyte_path, "dependencies/luau/cmake")
     AddLibraryPaths(executable, path_buffer);

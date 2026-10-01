@@ -706,8 +706,11 @@ void UserInputService::process(lua_State *L) {
                     luaL_pushresult(&buf);
                     return 1;
                 });
-        } else if (event.type == InputEvent::MouseMovement)
+        } else if (event.type == InputEvent::MouseMovement) {
+            setInstanceValue(rbxPlayer::localmouse, L, "X", static_cast<int32_t>(mouse_position.x));
+            setInstanceValue(rbxPlayer::localmouse, L, "Y", static_cast<int32_t>(mouse_position.y));
             genericFire(L, rbxPlayer::localmouse, "Move");
+        }
 
         auto hovered_gui_objects = getGuiObjectsHovered();
 

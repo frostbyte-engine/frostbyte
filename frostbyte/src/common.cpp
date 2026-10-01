@@ -23,6 +23,10 @@ bool print_stdout = true;
 bool print_stdout = false;
 #endif
 
+std::function<void(char*)> print_func = [] (char* message) {
+    printf("%s\n", message);
+};
+
 const char* currfuncname(lua_State* L) {
     Closure* cl = L->ci > L->base_ci ? curr_func(L) : NULL;
     const char* debugname = cl && cl->isC ? cl->c.debugname + 0 : NULL;
@@ -314,9 +318,20 @@ std::string getStackMessage(lua_State* L) {
 
 void consoleLog(lua_State* L, Console::Message::Type type, std::string_view message) {
     auto& console = getTask(L)->console;
-    if (print_stdout && console->id != Tests)
-        printf("%s %.*s\n", Console::getMessageTypeString(type), static_cast<int>(message.size()), message.data());
-    else
+    if (print_stdout && console->id != Tests) {
+        const char* format = "%s %.*s";
+        const char* arg1 = Console::getMessageTypeString(type);
+        int arg2 = static_cast<int>(message.size());
+        const char* arg3 = message.data();
+
+        int size = snprintf(NULL, 0, format, arg1, arg2, arg3);
+        char* msg = static_cast<char*>(calloc(size, sizeof(char)));
+        snprintf(msg, size + 1, format, arg1, arg2, arg3);
+
+        print_func(msg);
+
+        free(msg);
+    } else
         console->log(message, type);
 }
 int log(lua_State* L, Console::Message::Type type) {

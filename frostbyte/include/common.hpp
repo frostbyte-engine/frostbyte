@@ -29,6 +29,7 @@ namespace frostbyte {
 const char* currfuncname(lua_State* L);
 
 extern bool print_stdout;
+extern std::function<void(char*)> print_func;
 
 int countDecimals(double value);
 #define decimalFmt(value) countDecimals(value), value
