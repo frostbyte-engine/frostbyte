@@ -134,7 +134,7 @@ void DrawEntry::free() {
         DrawEntry_free_case(Triangle)
         DrawEntry_free_case(Quad)
         default:
-            assert(!"TODO: all DrawEntry types in free");
+            throw std::runtime_error("TODO: all DrawEntry types in free");
             break;
     }
 }

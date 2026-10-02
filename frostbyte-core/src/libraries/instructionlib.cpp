@@ -5,8 +5,6 @@
 #include "console.hpp"
 #include "userdata.hpp"
 
-#include <cassert>
-
 #include "lua.h"
 #include "lualib.h"
 #include "lcommon.h"

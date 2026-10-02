@@ -400,7 +400,7 @@ rbxValueVariant luaValueToValueVariant(lua_State* L, int idx, rbxValueVariant& r
     else if (std::holds_alternative<std::shared_ptr<rbxInstance>>(reference))
         return lua_checkinstance(L, idx);
     else
-        assert(!"UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
+        throw std::runtime_error("UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
 }
 rbxValueVariant luaValueToValueVariant(lua_State* L, int idx) {
     switch (lua_type(L, idx)) {
@@ -462,7 +462,7 @@ rbxValueVariant luaValueToValueVariant(lua_State* L, int idx) {
                 return lua_checkinstance(L, idx);
         }
     }
-    assert(!"UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
+    throw std::runtime_error("UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
 }
 
 void setInstanceValueFromVariant(std::shared_ptr<rbxInstance> instance, lua_State* L, const char* name, rbxValueVariant value, bool dont_report_changed) {
@@ -1053,39 +1053,39 @@ int pushInstanceValue(lua_State* L, rbxValueVariant& value) {
             //     lua_remove(L, -2);
             // }
         } else if (std::holds_alternative<std::shared_ptr<rbxInstance>>(value))
-            assert(lua_pushinstance(L, std::get<std::shared_ptr<rbxInstance>>(value)) == 1);
+            ASSERT(lua_pushinstance(L, std::get<std::shared_ptr<rbxInstance>>(value)) == 1);
         else if (std::holds_alternative<BrickColor*>(value))
-            assert(pushBrickColor(L, std::get<BrickColor*>(value)->index) == 1);
+            ASSERT(pushBrickColor(L, std::get<BrickColor*>(value)->index) == 1);
         else if (std::holds_alternative<Color>(value))
-            assert(pushColor(L, std::get<Color>(value)) == 1);
+            ASSERT(pushColor(L, std::get<Color>(value)) == 1);
         else if (std::holds_alternative<EnumItem*>(value))
-            assert(pushEnumItem(L, std::get<EnumItem*>(value)) == 1);
+            ASSERT(pushEnumItem(L, std::get<EnumItem*>(value)) == 1);
         else if (std::holds_alternative<EngineFont>(value))
-            assert(pushFont(L, std::get<EngineFont>(value)) == 1);
+            ASSERT(pushFont(L, std::get<EngineFont>(value)) == 1);
         else if (std::holds_alternative<TweenInfo>(value))
-            assert(pushTweenInfo(L, std::get<TweenInfo>(value)) == 1);
+            ASSERT(pushTweenInfo(L, std::get<TweenInfo>(value)) == 1);
         else if (std::holds_alternative<ColorSequenceKeypoint>(value))
-            assert(pushColorSequenceKeypoint(L, std::get<ColorSequenceKeypoint>(value)) == 1);
+            ASSERT(pushColorSequenceKeypoint(L, std::get<ColorSequenceKeypoint>(value)) == 1);
         else if (std::holds_alternative<ColorSequence>(value))
-            assert(pushColorSequence(L, std::get<ColorSequence>(value)) == 1);
+            ASSERT(pushColorSequence(L, std::get<ColorSequence>(value)) == 1);
         else if (std::holds_alternative<NumberRange>(value))
-            assert(pushNumberRange(L, std::get<NumberRange>(value)) == 1);
+            ASSERT(pushNumberRange(L, std::get<NumberRange>(value)) == 1);
         else if (std::holds_alternative<NumberSequenceKeypoint>(value))
-            assert(pushNumberSequenceKeypoint(L, std::get<NumberSequenceKeypoint>(value)) == 1);
+            ASSERT(pushNumberSequenceKeypoint(L, std::get<NumberSequenceKeypoint>(value)) == 1);
         else if (std::holds_alternative<NumberSequence>(value))
-            assert(pushNumberSequence(L, std::get<NumberSequence>(value)) == 1);
+            ASSERT(pushNumberSequence(L, std::get<NumberSequence>(value)) == 1);
         else if (std::holds_alternative<Rect>(value))
-            assert(pushRect(L, std::get<Rect>(value)) == 1);
+            ASSERT(pushRect(L, std::get<Rect>(value)) == 1);
         else if (std::holds_alternative<UDim>(value))
-            assert(pushUDim(L, std::get<UDim>(value)) == 1);
+            ASSERT(pushUDim(L, std::get<UDim>(value)) == 1);
         else if (std::holds_alternative<UDim2>(value))
-            assert(pushUDim2(L, std::get<UDim2>(value)) == 1);
+            ASSERT(pushUDim2(L, std::get<UDim2>(value)) == 1);
         else if (std::holds_alternative<Vector2>(value))
-            assert(pushVector2(L, std::get<Vector2>(value)) == 1);
+            ASSERT(pushVector2(L, std::get<Vector2>(value)) == 1);
         else if (std::holds_alternative<Vector3>(value))
-            assert(pushVector3(L, std::get<Vector3>(value)) == 1);
+            ASSERT(pushVector3(L, std::get<Vector3>(value)) == 1);
         else
-            assert("!UNHANDLED ALTERNATIVE FOR INSTANCE VALUE");
+            throw std::runtime_error("UNHANDLED ALTERNATIVE FOR INSTANCE VALUE");
     }
 
     return 1;
@@ -1327,7 +1327,7 @@ int rbxInstance__newindex(lua_State* L) {
 
                 current.index = new_value;
             } else
-                assert(!"UNHANDLED ALTERNATIVE FOR PROPERTY VALUE");
+                throw std::runtime_error("UNHANDLED ALTERNATIVE FOR PROPERTY VALUE");
             break;
         case DataType:
             if (std::holds_alternative<std::monostate>(value->value))
@@ -1390,7 +1390,7 @@ int rbxInstance__newindex(lua_State* L) {
                 const char* stacktrace = lua_tostring(L, -1);
                 lua_pop(L, 1);
                 printf("unhandled alternative for datatype value.. %s\n", stacktrace);
-                assert(!"UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
+                throw std::runtime_error("UNHANDLED ALTERNATIVE FOR DATATYPE VALUE");
             }
 
             break;

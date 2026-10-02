@@ -22,6 +22,11 @@ namespace frostbyte {
 #define MAX_KEYBOARD_KEYS 512
 
 #define strequal(str1, str2) (strcmp(str1, str2) == 0)
+#ifdef NDEBUG
+    #define ASSERT(expr) ((void)(expr))
+#else
+    #define ASSERT(expr) assert(expr)
+#endif
 
 #define luaL_optnumberloose(L, narg, def) (luaL_opt(L, lua_tonumber, narg, def))
 

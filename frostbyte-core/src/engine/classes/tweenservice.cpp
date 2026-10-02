@@ -397,7 +397,7 @@ void TweenService::process(lua_State *L) {
 
                 setInstanceValue(tween_object->instance, L, property, vector3);
             } else
-                assert(!"UNHANDLED TYPE FOR TWEEN");
+                throw std::runtime_error("UNHANDLED TYPE FOR TWEEN");
         }
 
         // cancel if every tween has been interrupted, or complete if all tweens have finished naturally

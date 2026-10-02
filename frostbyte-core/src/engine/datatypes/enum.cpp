@@ -39,15 +39,15 @@ int pushEnumTable(lua_State* L, std::string name) {
     return 1;
 }
 int pushEnum(lua_State* L, std::string name) {
-    assert(pushEnumTable(L, name) == 1);
-    assert(lua_rawgeti(L, -1, 1) != LUA_TNIL);
+    ASSERT(pushEnumTable(L, name) == 1);
+    ASSERT(lua_rawgeti(L, -1, 1) != LUA_TNIL);
     lua_remove(L, -2);
     return 1;
 }
 
 int pushEnumItem(lua_State* L, EnumItem* enum_item) {
-    assert(pushEnumTable(L, enum_item->enum_name.c_str()) == 1);
-    assert(lua_rawgeti(L, -1, 2) != LUA_TNIL);
+    ASSERT(pushEnumTable(L, enum_item->enum_name.c_str()) == 1);
+    ASSERT(lua_rawgeti(L, -1, 2) != LUA_TNIL);
     lua_remove(L, -2);
 
     int* lookup = &enum_item->lookup;
