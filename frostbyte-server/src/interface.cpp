@@ -107,7 +107,9 @@ void Interface::mainloop(std::string& code) {
             mvwin(body, 1, 0);
             clearok(stdscr, TRUE);
             break;
-        case '\n': case KEY_ENTER:
+        case '\n':
+        case '\r':
+        case KEY_ENTER:
             lines.push_back(prompt + line);
             code = line;
 
