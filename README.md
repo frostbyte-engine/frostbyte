@@ -1,6 +1,6 @@
 # frostbyte
 
-This repo contains the engine module for [frostbyte](https://github.com/frostbyte-engine).
+This repo contains the engine module, desktop application, and server application for [frostbyte](https://github.com/frostbyte-engine).
 
 # PROJECT STATE
 
@@ -10,12 +10,32 @@ In addition, I am frequently making drastic changes on my local machine before p
 
 [Issues](../../issues), however, usually closely match the project's real state.
 
-# BUILDING THE MODULE
-NOTE: frostbyte CURRENTLY does _not_ have a process for building neither for or on Windows. It is likely possible to cross compile via mingw, but that would require manual steps.
+# BUILDING
+All dependencies besides openssl and ncurses/pdcurses are fetched and built by CMake.
 
-THIS SECTION IS UNDER CONSTRUCTION! I AM TOO LAZY TO TYPE PROPER STEPS BUT YOU CAN READ [this build script](./buildwrap.sh) FOR MORE SOME IDEAS
+## BUILDING (UNIX)
+```bash
+cmake -B build -S . -G Ninja # shouldn't have to be ninja, but it's proven to work for frostbyte
+cmake --build build
+```
 
-ALSO SEE THE [workflow file](./.github/workflows/build-frostbyte-action.yml) FOR SYSTEM DEPENDENCY INFORMATION
+## BUILDING (WINDOWS)
+```bash
+vcpkg install openssl:x64-windows
+vcpkg install pdcurses:x64-windows
+```
+```bash
+cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ^
+  -DCURSES_INCLUDE_PATH=C:/path/to/vcpkg/installed/x64-windows/include ^
+  -DCURSES_LIBRARY=C:/path/to/vcpkg/installed/x64-windows/lib/pdcurses.lib ^
+  -DCMAKE_BUILD_TYPE=Release
+cmake --build build
+```
+If you know other methods of installing openssl and pdcurses that don't involve vcpkg that you'd like to see listed here, reach out to me (if you have my contact great, otherwise you can make a [GitHub issue](../../issues)).
+
+If you're unfamiliar with cmake, you can add -j8 to the end of the build command to speed things up: `cmake --build build -j8`.
+
+~~ALSO SEE THE [workflow file](./.github/workflows/build-frostbyte-action.yml) FOR SYSTEM DEPENDENCY INFORMATION~~
 
 # LUAU
 frostbyte embeds [Luau](https://github.com/luau-lang/luau). See [luau_LICENSE.txt](luau_LICENSE.txt) for licensing information.
