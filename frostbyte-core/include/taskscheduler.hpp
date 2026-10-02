@@ -113,6 +113,10 @@ struct Task {
 #define YIELD_KILL (-2)
 #define YIELD_ERROR (-3)
 
+#ifdef Yield
+#undef Yield
+#endif
+
 class Yield;
 
 using YieldFunction = std::function<void(Yield)>;

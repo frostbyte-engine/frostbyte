@@ -149,7 +149,11 @@ int main(int argc, char** argv) {
         }
     }
 
+    #ifdef _WIN32
+    const char* user_home = getenv("USERPROFILE");
+    #else
     const char* user_home = getenv("HOME");
+    #endif
     if (user_home == NULL) {
         fprintf(stderr, "ERROR: failed to get HOME environment variable\n");
         return 1;
@@ -183,12 +187,14 @@ int main(int argc, char** argv) {
 
     gameCycle();
 
-    struct sigaction action{};
-    action.sa_handler = handle_sigint;
-    sigemptyset(&action.sa_mask);
-    action.sa_flags = 0;
+    // struct sigaction action{};
+    // action.sa_handler = handle_sigint;
+    // sigemptyset(&action.sa_mask);
+    // action.sa_flags = 0;
 
-    sigaction(SIGINT, &action, nullptr);
+    // sigaction(SIGINT, &action, nullptr);
+
+    std::signal(SIGINT, handle_sigint);
 
     if (input_file_path) {
         std::string contents = readFileToString(input_file_path);

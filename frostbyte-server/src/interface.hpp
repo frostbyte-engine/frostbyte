@@ -1,6 +1,11 @@
 #pragma once
 
-#include <ncurses.h>
+#ifdef _WIN32
+    // we use pdcurses on Windows
+    #include <curses.h>
+#else
+    #include <ncurses.h>
+#endif
 #undef getstr
 
 #include <string>

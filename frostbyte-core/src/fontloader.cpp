@@ -61,7 +61,7 @@ void FontLoader::load() {
     std::string directory = FileSystem::home_path;
     directory.append("assets/enginefonts");
     for (const auto& file : std::filesystem::directory_iterator(directory)) {
-        tmp_font_path.assign(file.path());
+        tmp_font_path.assign(file.path().string());
 
         if (tmp_font_path.size() < 10)
             continue;

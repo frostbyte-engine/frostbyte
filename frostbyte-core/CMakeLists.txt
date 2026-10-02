@@ -155,6 +155,9 @@ add_library(frostbytecore::headless ALIAS frostbytecore_headless)
 target_include_directories(frostbytecore_headless PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
 target_compile_definitions(frostbytecore_headless PUBLIC FROSTBYTE_HEADLESS=1)
+if(WIN32)
+    target_compile_definitions(frostbytecore_headless PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER NOMINMAX)
+endif()
 target_link_libraries(frostbytecore_headless PUBLIC
   Luau.VM
   Luau.VM.Internals
@@ -223,6 +226,9 @@ if(FROSTBYTE_BUILD_DESKTOP)
   target_include_directories(frostbytecore_desktop PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
   target_compile_definitions(frostbytecore_desktop PUBLIC FROSTBYTE_DESKTOP=1)
+if(WIN32)
+    target_compile_definitions(frostbytecore_desktop PRIVATE WIN32_LEAN_AND_MEAN NOGDI NOUSER NOMINMAX)
+endif()
   target_link_libraries(frostbytecore_desktop PUBLIC
     Luau.VM
     Luau.VM.Internals

@@ -38,10 +38,10 @@ std::array<Vector2, 4> getRectangleLinesPro(Rectangle rec, Vector2 origin, float
     if (rotation == 0.0f) {
         float x = rec.x - origin.x;
         float y = rec.y - origin.y;
-        topLeft = (Vector2){ x, y };
-        topRight = (Vector2){ x + rec.width, y };
-        bottomLeft = (Vector2){ x, y + rec.height };
-        bottomRight = (Vector2){ x + rec.width, y + rec.height };
+        topLeft = Vector2{ x, y };
+        topRight = Vector2{ x + rec.width, y };
+        bottomLeft = Vector2{ x, y + rec.height };
+        bottomRight = Vector2{ x + rec.width, y + rec.height };
     } else {
         float sinRotation = sinf(rotation*DEG2RAD);
         float cosRotation = cosf(rotation*DEG2RAD);

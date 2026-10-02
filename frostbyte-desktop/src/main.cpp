@@ -617,7 +617,11 @@ int main(int argc, char** argv) {
         }
     }
 
+    #ifdef _WIN32
+    const char* user_home = getenv("USERPROFILE");
+    #else
     const char* user_home = getenv("HOME");
+    #endif
     if (user_home == NULL) {
         fprintf(stderr, "ERROR: failed to get HOME environment variable\n");
         return 1;

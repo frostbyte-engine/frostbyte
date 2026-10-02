@@ -5,6 +5,14 @@
 #include "imageloader.hpp"
 #include "imgui.h"
 
+#ifdef _WIN32
+    #ifndef WINGDIAPI
+    #define WINGDIAPI __declspec(dllimport)
+    #endif
+    #ifndef APIENTRY
+    #define APIENTRY __stdcall
+    #endif
+#endif
 #include <GL/gl.h>
 #include "raylib.h"
 
