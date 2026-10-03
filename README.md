@@ -4,7 +4,7 @@ This repo contains the engine module, desktop application, and server applicatio
 
 # PROJECT STATE
 
-This project is in early development stages! This is why there is no Windows support!
+This project is in early development stages!
 
 In addition, I am frequently making drastic changes on my local machine before pushing to GitHub (I bounce back and forth between areas) so the state of the project rarely matches what is public.
 
