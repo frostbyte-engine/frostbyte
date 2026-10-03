@@ -23,6 +23,7 @@ cmake --build build
 ```bash
 vcpkg install openssl:x64-windows
 vcpkg install pdcurses:x64-windows
+vcpkg install libgit2:x64-windows
 ```
 ```bash
 cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/buildsystems/vcpkg.cmake ^
@@ -31,7 +32,7 @@ cmake -B build -S . -G Ninja -DCMAKE_TOOLCHAIN_FILE=C:/path/to/vcpkg/scripts/bui
   -DCMAKE_BUILD_TYPE=Release
 cmake --build build
 ```
-If you know other methods of installing openssl and pdcurses that don't involve vcpkg that you'd like to see listed here, reach out to me (if you have my contact great, otherwise you can make a [GitHub issue](../../issues)).
+If you know other methods of installing and configuring dependencies that don't involve vcpkg that you'd like to see listed here, reach out to me (if you have my contact great, otherwise you can make a [GitHub issue](../../issues)).
 
 If you're unfamiliar with cmake, you can add -j8 to the end of the build command to speed things up: `cmake --build build -j8`.
 

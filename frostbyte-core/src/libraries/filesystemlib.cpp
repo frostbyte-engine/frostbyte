@@ -15,6 +15,7 @@ namespace frostbyte {
 
 std::string FileSystem::home_path;
 std::string FileSystem::workspace_path;
+std::string FileSystem::assets_path;
 std::string FileSystem::bin_path;
 std::string FileSystem::temp_path;
 

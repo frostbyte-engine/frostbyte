@@ -10,6 +10,7 @@ class FileSystem {
 public:
     static std::string home_path;
     static std::string workspace_path;
+    static std::string assets_path;
     static std::string bin_path;
     static std::string temp_path;
 };

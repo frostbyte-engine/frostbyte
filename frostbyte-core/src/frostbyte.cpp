@@ -4,6 +4,7 @@
 #include <cstring>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 #include <stdexcept>
 
 #include "engine/classes/baseplayergui.hpp"
@@ -60,6 +61,7 @@
 #include "console.hpp"
 #include "fontloader.hpp"
 #include "imageloader.hpp"
+#include "git.hpp"
 
 #include "lua.h"
 #include "lualib.h"
@@ -115,6 +117,9 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
     FileSystem::workspace_path.assign(FileSystem::home_path);
     FileSystem::workspace_path.append("workspace/");
 
+    FileSystem::assets_path.assign(FileSystem::home_path);
+    FileSystem::assets_path.append("assets/");
+
     FileSystem::bin_path.assign(FileSystem::home_path);
     FileSystem::bin_path.append("bin/");
 
@@ -132,7 +137,18 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
 
     ScriptLanguage::refresh();
 
-    // FIXME: we need to pull assets from the repo if the assets folder doesn't exist!
+    if (!had_started) {
+        curl_global_init(CURL_GLOBAL_DEFAULT);
+        gitInit();
+    }
+
+    if (!std::filesystem::exists(FileSystem::assets_path)) {
+        std::cout << "$HOME/assets doesn't exist. cloning assets repo..." << std::endl;
+        auto err = gitShallowClone("https://github.com/frostbyte-engine/frostbyte-assets.git", FileSystem::assets_path.c_str());
+        if (err)
+            throw new std::runtime_error(std::string("failed to fetch assets: ").append(*err));
+        std::cout << "Cloned successfully." << std::endl;
+    }
 
     }
 
@@ -146,9 +162,6 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
         throw new std::runtime_error(std::string("failed to read api dump at ").append(path).append(": ").append(e.what()));
     }
     }
-
-    if (!had_started)
-        curl_global_init(CURL_GLOBAL_DEFAULT);
 
     L = luaL_newstate();
     luaL_openlibs(L);
@@ -290,8 +303,10 @@ void Frostbyte::cleanup(bool restart) {
 
     lua_close(L);
 
-    if (!restart)
+    if (!restart) {
         curl_global_cleanup();
+        gitShutdown();
+    }
 }
 
 void Frostbyte::preRender() {

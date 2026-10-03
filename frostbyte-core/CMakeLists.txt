@@ -6,6 +6,15 @@ set(FETCHCONTENT_QUIET OFF)
 set(OPENSSL_USE_STATIC_LIBS FALSE)
 find_package(OpenSSL REQUIRED)
 
+find_package(unofficial-git2 CONFIG QUIET)
+if(TARGET unofficial::git2::git2)
+  set(GIT2_TARGET unofficial::git2::git2)
+else()
+  find_package(PkgConfig REQUIRED)
+  pkg_check_modules(LIBGIT2 REQUIRED IMPORTED_TARGET libgit2)
+  set(GIT2_TARGET PkgConfig::LIBGIT2)
+endif()
+
 # Luau
 set(LUAU_BUILD_CLI      OFF CACHE BOOL "" FORCE)
 set(LUAU_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
@@ -73,6 +82,7 @@ set(FOOLIB_SOURCES
   src/environment.cpp
   src/fontloader.cpp
   src/frostbyte.cpp
+  src/git.cpp
   src/http.cpp
   src/imageloader.cpp
   src/imguitheme.cpp
@@ -166,6 +176,7 @@ target_link_libraries(frostbytecore_headless PUBLIC
   nlohmann_json::nlohmann_json
   OpenSSL::Crypto
   BLAKE3::blake3
+  ${GIT2_TARGET}
   libzstd_static)
 target_compile_features(frostbytecore_headless PUBLIC cxx_std_17)
 
@@ -237,6 +248,7 @@ endif()
     nlohmann_json::nlohmann_json
     OpenSSL::Crypto
     BLAKE3::blake3
+    ${GIT2_TARGET}
     libzstd_static
     rlimgui
     imguifiledialog)
