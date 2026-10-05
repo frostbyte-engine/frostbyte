@@ -48,7 +48,6 @@
 #include "imguitheme.hpp"
 #include "sysutils.hpp"
 
-#include "curl/curl.h"
 #ifndef FROSTBYTE_HEADLESS
 #include "raylib.h"
 #include "imgui.h"
@@ -62,6 +61,7 @@
 #include "fontloader.hpp"
 #include "imageloader.hpp"
 #include "git.hpp"
+#include "http.hpp"
 
 #include "lua.h"
 #include "lualib.h"
@@ -138,7 +138,7 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
     ScriptLanguage::refresh();
 
     if (!had_started) {
-        curl_global_init(CURL_GLOBAL_DEFAULT);
+        httpInit();
         gitInit();
     }
 
@@ -243,6 +243,8 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
 
     // load round shader
     #ifndef FROSTBYTE_HEADLESS
+    // TODO: look into why shader fails in wasm
+    #ifndef __EMSCRIPTEN__
     {
         std::string base_path = FileSystem::home_path;
         base_path.append("assets/base.vs");
@@ -269,6 +271,7 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
 
     default_imgui_style = ImGui::GetStyle();
     changeImGuiTheme(imgui_theme);
+    #endif
     #endif
 
     DataModel::onLoad(L);
@@ -304,7 +307,7 @@ void Frostbyte::cleanup(bool restart) {
     lua_close(L);
 
     if (!restart) {
-        curl_global_cleanup();
+        httpShutdown();
         gitShutdown();
     }
 }

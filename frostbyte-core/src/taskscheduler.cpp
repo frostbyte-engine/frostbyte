@@ -355,12 +355,17 @@ int TaskScheduler::yieldForWork(lua_State* thread, YieldFunction callback, bool 
     int r = yieldThread(thread);
 
     if (threaded) {
+        #ifdef __EMSCRIPTEN__
+        Yield yield(thread, &pending_yield_list, &pending_yield_mutex);
+        callback(yield);
+        #else
         std::thread t([thread, callback]() {
             Yield yield(thread, &pending_yield_list, &pending_yield_mutex);
             callback(yield);
         });
 
         t.detach();
+        #endif
     } else {
         Yield yield(thread, &pending_yield_list, &pending_yield_mutex);
         callback(yield);

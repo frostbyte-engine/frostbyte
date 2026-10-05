@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>My App</title>
+  <style>
+    body { margin: 0; overflow: hidden; }
+    #canvas { position: fixed; top: 0; left: 0; display: block; }
+  </style>
+</head>
+<body>
+  <!-- <h1>My App</h1> -->
+  <!-- <p id="status">Loading...</p> -->
+
+  <canvas id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+
+  <script>
+    var Module = {
+      canvas: document.getElementById("canvas"),
+      print: function (text) { console.log(text); },
+      printErr: function (text) { console.error(text); },
+      setStatus: function (text) {
+        <!-- document.getElementById("status").textContent = text; -->
+      }
+    };
+    <!-- function showException(e) { -->
+      <!-- const ptr = typeof e === 'number' ? e : (e && e.excPtr); -->
+      <!-- if (ptr !== undefined && Module.getExceptionMessage) { -->
+        <!-- const [type, message] = Module.getExceptionMessage(ptr); -->
+        <!-- console.error('C++ exception ' + type + ': ' + message); -->
+      <!-- } else { -->
+        <!-- console.error(e); -->
+      <!-- } -->
+    <!-- } -->
+    <!-- window.addEventListener('error', (ev) => showException(ev.error)); -->
+    <!-- window.addEventListener('unhandledrejection', (ev) => showException(ev.reason)); -->
+  </script>
+  <script src="build/frostbyte-desktop/frostbyte-desktop.js"></script>
+</body>
+</html>

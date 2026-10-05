@@ -1,3 +1,7 @@
 imgui.ini
 .test_success
 /build/
+/buildwasm/
+/wasm/libgit2/
+/wasm/openssl/
+/wasm/install/

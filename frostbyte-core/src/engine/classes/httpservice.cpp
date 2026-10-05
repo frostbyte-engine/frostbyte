@@ -3,6 +3,7 @@
 #include "engine/classes/instance.hpp"
 
 #include <random>
+#include <sstream>
 
 #include "lapi.h"
 #include "lgc.h"

@@ -35,6 +35,34 @@
 #include "rlImGui.h"
 #include "ImGuiFileDialog.h"
 
+// wasm
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#include <emscripten/html5.h>
+
+// TODO: maybe implement like a filter that waits until the window stops resizing because if you full screen it will do an animation that causes flickering
+static EM_BOOL on_resize(int, const EmscriptenUiEvent*, void*) {
+    int w = EM_ASM_INT({ return window.innerWidth; });
+    int h = EM_ASM_INT({ return window.innerHeight; });
+    SetWindowSize(w, h);
+    return EM_FALSE;
+}
+
+EM_JS(char*, imgui_load_ini, (), {
+    const s = localStorage.getItem('imgui_ini');
+    if (!s)
+        return 0;
+    const len = lengthBytesUTF8(s) + 1;
+    const p = _malloc(len);
+    stringToUTF8(s, p, len);
+    return p;
+});
+
+EM_JS(void, imgui_save_ini, (const char* s), {
+    localStorage.setItem('imgui_ini', UTF8ToString(s));
+});
+#endif
+
 #define strequal(str1, str2) (strcmp(str1, str2) == 0)
 
 std::string readFileToString(const char* file_path) {
@@ -160,6 +188,12 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
 
     frostbyte::setupTests(&is_running_tests, &all_tests_succeeded);
 
+    #ifdef __EMSCRIPTEN__
+    std::string file_dialog_path = "/home/web_user/frostbyte/luascripts";
+    #else
+    std::string file_dialog_path = ".";
+    #endif
+
     bool close = false;
     bool restart = false;
 
@@ -254,7 +288,7 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
                 if (ImGui::Button("Open File(s)")) {
                     IGFD::FileDialogConfig config;
                     config.countSelectionMax = 0;
-                    config.path = ".";
+                    config.path = file_dialog_path;
                     // TODO: .moon and .clue and then check extension to automatically set tab language
                     ImGuiFileDialog::Instance()->OpenDialog("scripteditoropen", "Open File(s)", ".luau,.lua,.*", config); 
                 }
@@ -262,14 +296,14 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
                 if (ImGui::Button("Execute File(s)")) {
                     IGFD::FileDialogConfig config;
                     config.countSelectionMax = 0;
-                    config.path = ".";
+                    config.path = file_dialog_path;
                     // TODO: .moon and .clue and then check extension to convert
                     ImGuiFileDialog::Instance()->OpenDialog("scripteditorexecute", "Execute File(s)", ".luau,.lua,.*", config); 
                 }
                 ImGui::SameLine();
                 if (ImGui::Button("Save To File")) {
                     IGFD::FileDialogConfig config;
-                    config.path = ".";
+                    config.path = file_dialog_path;
                     ImGuiFileDialog::Instance()->OpenDialog("scripteditorsave", "Save File", ".*", config); 
                 }
 
@@ -580,6 +614,15 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
 
         frostbyte::Frostbyte::endRender();
 
+        #ifdef __EMSCRIPTEN__
+        ImGuiIO& io = ImGui::GetIO();
+        if (io.WantSaveIniSettings) {
+            const char* data = ImGui::SaveIniSettingsToMemory();
+            imgui_save_ini(data);
+            io.WantSaveIniSettings = false;
+        }
+        #endif
+
         if (should_run_tests) {
             should_run_tests = false;
             frostbyte::startAllTests(testL);
@@ -634,12 +677,34 @@ int main(int argc, char** argv) {
 
     configuration.initializeWindow = []() {
         SetTraceLogLevel(LOG_WARNING);
-        SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_TRANSPARENT);
+        int flags = FLAG_WINDOW_TRANSPARENT;
+        #ifndef __EMSCRIPTEN__
+        flags |= FLAG_WINDOW_RESIZABLE;
+        #endif
+
+        SetConfigFlags(flags);
         InitWindow(800, 600, "frostbyte");
+
+        #ifdef __EMSCRIPTEN__
+        emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, nullptr, EM_FALSE, on_resize);
+        on_resize(0, nullptr, nullptr);
+        #endif
+
         SetExitKey(KEY_NULL);
         SetTargetFPS(frostbyte::TaskScheduler::target_fps);
 
         rlImGuiSetup(true);
+
+        #ifdef __EMSCRIPTEN__
+            ImGuiIO& io = ImGui::GetIO();
+            io.IniFilename = nullptr;
+
+            char* ini = imgui_load_ini();
+            if (ini) {
+                ImGui::LoadIniSettingsFromMemory(ini);
+                free(ini);
+            }
+        #endif
     };
     configuration.cleanupWindow = []() {
         rlImGuiShutdown();
