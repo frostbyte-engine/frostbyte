@@ -5,3 +5,4 @@ imgui.ini
 /wasm/libgit2/
 /wasm/openssl/
 /wasm/install/
+/wasm/server/frostbyte-desktop*

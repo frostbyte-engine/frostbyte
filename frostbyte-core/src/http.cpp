@@ -57,7 +57,7 @@ void performRequest(const char* url, MemoryStruct* chunk, const char* method = "
         js_resp_copy(chunk->memory);
     chunk->memory[len] = 0;
     chunk->size = len;
-    chunk->res = CURLE_OK;
+    chunk->res = 0; // CURLE_OK
 }
 
 void newGetRequest(const char* url, MemoryStruct* chunk) {

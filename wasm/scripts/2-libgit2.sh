@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
 
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+DIR=$( realpath "$DIR/.." )
+
+cd $DIR || exit 1
 
 git clone --depth 1 --branch v1.8.1 https://github.com/libgit2/libgit2.git || exit 1
 cd libgit2 || exit 1

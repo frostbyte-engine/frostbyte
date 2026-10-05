@@ -3,7 +3,7 @@
 #include <cstddef>
 
 #ifdef __EMSCRIPTEN__
-typedef CURLcode int
+typedef int CURLcode;
 #else
 #include "curl/curl.h"
 #endif

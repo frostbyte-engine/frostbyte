@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 
 DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
-
-mkdir -p $DIR/install
+DIR=$( realpath "$DIR/.." )
 
 emcmake cmake -B buildwasm -S . -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_FIND_ROOT_PATH=$DIR/install \

@@ -12,8 +12,8 @@ if(EMSCRIPTEN)
   endif()
 
   set(ASSETS_DIR "${USER_HOME_DIR}/frostbyte/assets")
-  if(NOT EXISTS "${ASSETS_SOURCE_DIR}")
-    message(FATAL_ERROR "Ensure ${ASSETS_SOURCE_DIR} exists before building with emscripten.")
+  if(NOT EXISTS "${ASSETS_DIR}")
+    message(FATAL_ERROR "Ensure ${ASSETS_DIR} exists before building with emscripten.")
   endif()
 
   target_link_options(frostbyte-desktop PRIVATE
