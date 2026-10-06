@@ -100,16 +100,19 @@ void renderInstance(lua_State* L, std::shared_ptr<rbxInstance>& instance) {
     ImGui::PopID();
 }
 
-void renderPropertyValue(rbxProperty* property, rbxValueVariant& value) {
+void renderPropertyValue(lua_State* L, std::shared_ptr<rbxInstance> instance, rbxProperty* property, const std::string& name, rbxValueVariant& value) {
     ImGui::PushID(property);
     static const char* label = "##value";
 
-    // FIXME: reportChanged
+    // FIXME: use setInstanceValue (see the bool case)
     switch (property->type_category) {
         case Primitive:
-            if (std::holds_alternative<bool>(value))
-                ImGui::Checkbox(label, &std::get<bool>(value));
-            else if (std::holds_alternative<int32_t>(value))
+            if (std::holds_alternative<bool>(value)) {
+                bool newvalue = std::get<bool>(value);
+                if (ImGui::Checkbox(label, &newvalue))
+                    // NOTE: we set is_from_lua to true so FrostbyteOption values update... this is misleading and a better solution would have accurate naming
+                    setInstanceValue(instance, L, name.c_str(), newvalue, false, true);
+            } else if (std::holds_alternative<int32_t>(value))
                 ImGui::DragScalar(label, ImGuiDataType_S32, &std::get<int32_t>(value));
             else if (std::holds_alternative<int64_t>(value))
                 ImGui::DragScalar(label, ImGuiDataType_S64, &std::get<int64_t>(value));
@@ -265,7 +268,7 @@ void UI_InstanceExplorer_render(lua_State *L) {
                 if (disabled)
                     ImGui::BeginDisabled();
 
-                renderPropertyValue(property.get(), value_pair.second.value);
+                renderPropertyValue(L, selected, property.get(), value_pair.first, value_pair.second.value);
 
                 if (read_only)
                     ImGui::SetItemTooltip("read-only");

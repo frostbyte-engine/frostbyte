@@ -1,10 +1,12 @@
 #pragma once
 
+#include "frostbyteoption.hpp"
+
 #include "lua.h"
 
 namespace frostbyte {
 
-extern bool enable_stephook;
+extern FrostbyteOption enable_stephook;
 
 void open_instructionlib(lua_State* L);
 

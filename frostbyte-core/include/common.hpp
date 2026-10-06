@@ -6,6 +6,7 @@
 #include <string>
 #include <cstring> // for strcmp for strequal
 
+#include "frostbyteoption.hpp"
 #include "nlohmann/json.hpp"
 #include "console.hpp"
 #include "userdata.hpp"
@@ -33,7 +34,7 @@ namespace frostbyte {
 // from laux.cpp
 const char* currfuncname(lua_State* L);
 
-extern bool print_stdout;
+extern FrostbyteOption print_stdout;
 extern std::function<void(char*)> print_func;
 
 int countDecimals(double value);

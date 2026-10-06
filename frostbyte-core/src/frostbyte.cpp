@@ -10,9 +10,14 @@
 #include "engine/classes/baseplayergui.hpp"
 #include "engine/classes/camera.hpp"
 #include "engine/classes/datamodel.hpp"
+#ifndef FROSTBYTE_HEADLESS
+#include "engine/classes/frostbyte/frostbytemainmenubar.hpp"
+#endif
+#include "engine/classes/frostbyte/frostbyteoptions.hpp"
 #include "engine/classes/runservice.hpp"
 #include "engine/classes/tweenservice.hpp"
 #include "engine/classes/userinputservice.hpp"
+#include "engine/classes/frostbyte/frostbyteservice.hpp"
 #include "engine/classes/frostbyte/imguiservice.hpp"
 #include "engine/classes/workspace.hpp"
 #include "engine/datatypes/brickcolor.hpp"
@@ -229,6 +234,11 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
     open_drawentrylib(L);
     open_drawingimmediate(L);
     #endif
+    #ifndef FROSTBYTE_HEADLESS
+    FrostbyteMainMenuBar_init(L);
+    #endif
+    FrostbyteOptions_init(L);
+    FrostbyteService_init(L, DataModel::instance);
 
     lua_newtable(L);
     lua_setglobal(L, "shared");
@@ -328,10 +338,9 @@ void Frostbyte::preRender() {
     int screen_height = GetScreenHeight();
     rbxCamera::screen_size.x = screen_width;
     rbxCamera::screen_size.y = screen_height;
-    #endif
-
     // camera
     rbxInstance_Camera_updateViewport(appL);
+    #endif
 }
 void Frostbyte::beginRender() {
     #ifndef FROSTBYTE_HEADLESS
@@ -388,6 +397,10 @@ void Frostbyte::postRender() {
     RunService::heartbeat(appL);
 
     setInstanceValue<double>(Workspace::instance, appL, "DistributedGameTime", lua_clock() - TaskScheduler::init_time);
+
+    for (const auto& update : option_update_list)
+        setInstanceValue(FrostbyteService::options, appL, update.name, update.value);
+    option_update_list.clear();
 
     SysUtils::run();
 }

@@ -41,7 +41,7 @@ void rbxInstance_TweenBase_init() {
     this_class->methods.at("Play").func = rbxInstance_TweenBase_methods::play;
     this_class->methods.at("Pause").func = rbxInstance_TweenBase_methods::pause;
 
-    this_class->newInternalProperty("internal_Object", Primitive, { .value = (void*) nullptr });
+    this_class->newProperty("internal_Object", Primitive, { .value = (void*) nullptr }, true);
 }
 
 }; // namespace frostbyte

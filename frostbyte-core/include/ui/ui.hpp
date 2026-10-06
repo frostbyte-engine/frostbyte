@@ -1,20 +1,24 @@
 #pragma once
 
+#include "frostbyteoption.hpp"
+
+#ifdef FROSTBYTE_HEADLESS
+#include "renderstubs.hpp"
+#else
 #include "engine/datatypes/udim.hpp"
 #include "engine/datatypes/udim2.hpp"
 
 #include "scriptlanguage.hpp"
 
-#ifdef FROSTBYTE_HEADLESS
-#include "renderstubs.hpp"
-#else
 #include "imgui.h"
 #include "raylib.h"
-#endif
 
 #include <string>
+#endif
 
 namespace frostbyte {
+
+// TODO: move non-ui related things out of here (probably to frostbyte[ch]pp)
 
 extern float menu_bar_height;
 extern Vector2 gui_inset_topleft;
@@ -23,8 +27,8 @@ extern Vector2 gui_inset_bottomright;
 // window items
 
 extern bool httpget_synchronous_argument;
-extern bool runservice_is_server;
-extern bool runservice_is_studio;
+extern FrostbyteOption runservice_is_server;
+extern FrostbyteOption runservice_is_studio;
 
 extern Color background_color;
 extern bool show_fps;
@@ -60,6 +64,8 @@ void ImGui_DragUDim2(const char* name, UDim2& udim2, float speed = 0.6f, float m
 
 bool ImGui_ThreadIdentityCombo(int* id);
 void ImGui_ScriptLanguageCombo(ScriptLanguage** language);
+
+bool ImGui_MainMenuOption(const char* name, FrostbyteOption& option);
 #endif
 
 }; // namespace frostbyte

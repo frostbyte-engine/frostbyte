@@ -1,5 +1,6 @@
 #include "common.hpp"
 #include "console.hpp"
+#include "frostbyteoption.hpp"
 #include "taskscheduler.hpp"
 #include "userdata.hpp"
 
@@ -18,9 +19,9 @@
 namespace frostbyte {
 
 #ifdef FROSTBYTE_HEADLESS
-bool print_stdout = true;
+FrostbyteOption print_stdout(true);
 #else
-bool print_stdout = false;
+FrostbyteOption print_stdout(false);
 #endif
 
 std::function<void(char*)> print_func = [] (char* message) {
@@ -325,7 +326,7 @@ void consoleLog(lua_State* L, Console::Message::Type type, std::string_view mess
         const char* arg3 = message.data();
 
         int size = snprintf(NULL, 0, format, arg1, arg2, arg3);
-        char* msg = static_cast<char*>(calloc(size, sizeof(char)));
+        char* msg = static_cast<char*>(calloc(size + 1, sizeof(char)));
         snprintf(msg, size + 1, format, arg1, arg2, arg3);
 
         print_func(msg);

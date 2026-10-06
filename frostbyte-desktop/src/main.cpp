@@ -2,6 +2,8 @@
 #include <cstring>
 
 // us
+#include "common.hpp"
+#include "engine/classes/frostbyte/frostbytemainmenubar.hpp"
 #include "imgui.h"
 #include "imguitheme.hpp"
 
@@ -206,19 +208,18 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
 
         const float imgui_frame_height = ImGui::GetFrameHeightWithSpacing();
 
-        if (ImGui::BeginMainMenuBar()) {
+        if (frostbyte::main_menu_bar_enabled && ImGui::BeginMainMenuBar()) {
             if (ImGui::BeginMenu("Options")) {
                 ImGui::BeginDisabled();
                 ImGui::Text("sandboxing - %s", frostbyte::TaskScheduler::sandboxing ? "enabled" : "disabled");
                 ImGui::EndDisabled();
 
-                ImGui::MenuItem("print routes to stdout", nullptr, &frostbyte::print_stdout);
-                if (ImGui::MenuItem("enable stephook", nullptr, &frostbyte::enable_stephook))
-                    frostbyte::onEnableStephookChange(frostbyte::Frostbyte::appL);
+                ImGui_MainMenuOption("print routes to stdout", frostbyte::print_stdout);
+                ImGui_MainMenuOption("enable stephook", frostbyte::enable_stephook);
 
                 ImGui::MenuItem("HttpGet synchronous Argument Enabled", nullptr, &frostbyte::httpget_synchronous_argument);
-                ImGui::MenuItem("RunService IsServer", nullptr, &frostbyte::runservice_is_server);
-                ImGui::MenuItem("RunService IsStudio", nullptr, &frostbyte::runservice_is_studio);
+                ImGui_MainMenuOption("RunService IsServer", frostbyte::runservice_is_server);
+                ImGui_MainMenuOption("RunService IsStudio", frostbyte::runservice_is_studio);
 
                 ImGui::EndMenu();
             }

@@ -65,42 +65,6 @@ struct rbxEvent {
 class rbxInstance;
 class rbxValue;
 
-class rbxClass {
-public:
-    static std::unordered_map<std::string, std::shared_ptr<rbxClass>> class_map;
-    static std::vector<std::string> valid_class_names;
-    static std::vector<std::string> valid_services;
-
-    std::string name;
-
-    enum Tags : uint8_t {
-        NotCreatable = 1 << 0,
-    };
-    uint8_t tags = 0;
-
-    std::shared_ptr<rbxClass> superclass;
-    std::unordered_map<std::string, std::shared_ptr<rbxProperty>> properties;
-    std::unordered_map<std::string, rbxMethod> methods;
-    std::vector<rbxEvent> events;
-    // TODO: replace std::function with function pointers
-    std::function<void(lua_State* L, std::shared_ptr<rbxInstance> instance)> constructor = nullptr;
-    std::function<void(rbxInstance*)> destructor = nullptr;
-    std::function<void(rbxInstance*)> destructorLua = nullptr;
-
-    bool (*newindexHookPre)(lua_State* L, std::shared_ptr<rbxInstance> instance, const char* property) = nullptr;
-
-    void newMethod(const char* name, lua_CFunction func, lua_Continuation cont = nullptr) {
-        rbxMethod method;
-        method._class = this->name;
-        method.name = name;
-        method.func = func;
-        method.cont = cont;
-        methods.try_emplace(name, method);
-    }
-
-    std::shared_ptr<rbxProperty> newInternalProperty(const char* name, TypeCategory type_category, rbxValue default_value);
-};
-
 struct rbxCallback {
     int index; // index in method lookup; -1 means empty (nil)
 };
@@ -136,6 +100,36 @@ typedef std::variant<
     Vector2,
     Vector3
 > rbxValueVariant;
+
+class rbxClass {
+public:
+    static std::unordered_map<std::string, std::shared_ptr<rbxClass>> class_map;
+    static std::vector<std::string> valid_class_names;
+    static std::vector<std::string> valid_services;
+
+    std::string name;
+
+    enum Tags : uint8_t {
+        NotCreatable = 1 << 0,
+    };
+    uint8_t tags = 0;
+
+    std::shared_ptr<rbxClass> superclass;
+    std::unordered_map<std::string, std::shared_ptr<rbxProperty>> properties;
+    std::unordered_map<std::string, rbxMethod> methods;
+    std::vector<rbxEvent> events;
+    // TODO: replace std::function with function pointers
+    std::function<void(lua_State* L, std::shared_ptr<rbxInstance> instance)> constructor = nullptr;
+    std::function<void(rbxInstance*)> destructor = nullptr;
+    std::function<void(rbxInstance*)> destructorLua = nullptr;
+
+    bool (*newindexHookPre)(lua_State* L, std::shared_ptr<rbxInstance> instance, const char* property) = nullptr;
+    void (*setValueHookPost)(lua_State* L, std::shared_ptr<rbxInstance> instance, const char* property, rbxValueVariant& value, bool is_from_lua) = nullptr;
+
+    std::shared_ptr<rbxProperty> newProperty(const char* name, TypeCategory type_category, rbxValue default_value, bool internal = false);
+    void newMethod(const char* name, lua_CFunction func, lua_Continuation cont = nullptr);
+    void newEvent(const char* name);
+};
 
 class rbxValue {
 public:
@@ -429,7 +423,7 @@ int setInstanceValueVariant(rbxValueVariant& variant, T value) {
     return -1;
 }
 template<typename T>
-void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const char* name, T value, bool dont_report_changed = false) {
+void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const char* name, T value, bool dont_report_changed = false, bool is_from_lua = false) {
     // std::unique_lock lock(instance->values_mutex);
 
     auto& rbxvalue = instance->values.at(name);
@@ -468,6 +462,15 @@ void setInstanceValue(std::shared_ptr<rbxInstance> instance, lua_State* L, const
 
     if (!rbxvalue.property->internal && !dont_report_changed)
         reportChanged(L, instance, name);
+
+    {
+    rbxClass* c = instance->_class.get();
+    while (c) {
+        if (c->setValueHookPost)
+            c->setValueHookPost(L, instance, name, variant, is_from_lua);
+        c = c->superclass.get();
+    }
+    }
 
     DUPLICATE: ;
 }

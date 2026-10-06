@@ -3,6 +3,8 @@
 #include "engine/datatypes/rbxscriptsignal.hpp"
 #include "common.hpp"
 #include "console.hpp"
+#include "frostbyte.hpp"
+#include "frostbyteoption.hpp"
 #include "userdata.hpp"
 
 #include "lua.h"
@@ -16,7 +18,7 @@
 
 namespace frostbyte {
 
-bool enable_stephook = false;
+FrostbyteOption enable_stephook{false};
 
 #define LUAU_SET_OP(insn, op) ((insn) = ((insn) & ~0xff) | ((op) & 0xff))
 
@@ -181,6 +183,11 @@ static int fr_instructionlib_getimport(lua_State* L) {
 }
 
 void open_instructionlib(lua_State *L) {
+    // TODO: maybe move this to a separate "init" function cuz this is not 'opening instruction lib'
+    enable_stephook.on_set_list.push_back(FrostbyteOptionCallback{nullptr, [](bool, void*){
+        frostbyte::onEnableStephookChange(Frostbyte::appL);
+    }});
+
     // instruction global
     lua_newtable(L);
 

@@ -11,10 +11,10 @@ void rbxInstance_GuiButton_init() {
         setInstanceValue(instance, L, "AutoButtonColor", true, true);
     };
 
-    this_class->newInternalProperty("internal_CanActivate", Primitive, { .value = false });
-    this_class->newInternalProperty("internal_ActivateCount", Primitive, { .value = int32_t(0) });
-    this_class->newInternalProperty("internal_Click1Step1", Primitive, { .value = false });
-    this_class->newInternalProperty("internal_Click2Step1", Primitive, { .value = false });
+    this_class->newProperty("internal_CanActivate", Primitive, { .value = false }, true);
+    this_class->newProperty("internal_ActivateCount", Primitive, { .value = int32_t(0) }, true);
+    this_class->newProperty("internal_Click1Step1", Primitive, { .value = false }, true);
+    this_class->newProperty("internal_Click2Step1", Primitive, { .value = false }, true);
 }
 
 bool checkAutoButtonColor(std::shared_ptr<rbxInstance> instance) {

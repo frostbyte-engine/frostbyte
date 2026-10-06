@@ -238,7 +238,7 @@ void ImGuiService_init(lua_State* L, std::shared_ptr<rbxInstance> datamodel) {
 
     this_class->newMethod("ColorEdit", ImGuiService_methods::colorEdit);
 
-    this_class->events.push_back(rbxEvent{ .name = "Render" });
+    this_class->newEvent("Render");
 
     rbxClass::class_map.try_emplace("ImGuiService", this_class);
     ServiceProvider::registerService("ImGuiService");

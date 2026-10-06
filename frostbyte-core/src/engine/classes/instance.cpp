@@ -60,11 +60,18 @@ std::unordered_map<std::string, std::shared_ptr<rbxClass>> rbxClass::class_map;
 std::vector<std::string> rbxClass::valid_class_names;
 std::vector<std::string> rbxClass::valid_services;
 
-
-std::shared_ptr<rbxProperty> rbxClass::newInternalProperty(const char* name, TypeCategory type_category, rbxValue default_value) {
+void rbxClass::newMethod(const char* name, lua_CFunction func, lua_Continuation cont) {
+    rbxMethod method;
+    method._class = this->name;
+    method.name = name;
+    method.func = func;
+    method.cont = cont;
+    methods.try_emplace(name, method);
+}
+std::shared_ptr<rbxProperty> rbxClass::newProperty(const char* name, TypeCategory type_category, rbxValue default_value, bool internal) {
     std::shared_ptr<rbxProperty> property = std::make_shared<rbxProperty>();
 
-    property->internal = true;
+    property->internal = internal;
     property->type_category = type_category;
     property->default_value = default_value;
 
@@ -73,6 +80,9 @@ std::shared_ptr<rbxProperty> rbxClass::newInternalProperty(const char* name, Typ
     property->default_value.property = property;
 
     return property;
+}
+void rbxClass::newEvent(const char* name) {
+    events.push_back(rbxEvent{ .name = name });
 }
 
 std::vector<std::weak_ptr<rbxInstance>> rbxInstance::instance_list;
@@ -1276,31 +1286,31 @@ int rbxInstance__newindex(lua_State* L) {
         case Primitive:
             if (std::holds_alternative<bool>(value->value)) {
                 const bool new_value = lua_toboolean(L, 3);
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<int32_t>(value->value)) {
                 int isnum;
                 const int32_t new_value = lua_tointegerx(L, 3, &isnum);
                 if (!isnum)
                     getTask(L)->console->warningf("value of type %s cannot be converted to a number", luaL_typename(L, 3));
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<int64_t>(value->value)) {
                 int isnum;
                 const int64_t new_value = lua_tointegerx(L, 3, &isnum);
                 if (!isnum)
                     getTask(L)->console->warningf("value of type %s cannot be converted to a number", luaL_typename(L, 3));
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<float>(value->value)) {
                 int isnum;
                 const float new_value = lua_tonumberx(L, 3, &isnum);
                 if (!isnum)
                     getTask(L)->console->warningf("value of type %s cannot be converted to a number", luaL_typename(L, 3));
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<double>(value->value)) {
                 int isnum;
                 const double new_value = lua_tonumberx(L, 3, &isnum);
                 if (!isnum)
                     getTask(L)->console->warningf("value of type %s cannot be converted to a number", luaL_typename(L, 3));
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<std::string>(value->value)) {
                 STRING_CASE:
                 size_t l;
@@ -1309,7 +1319,7 @@ int rbxInstance__newindex(lua_State* L) {
                     luaL_error(L, "Unable to assign property %s. string expected, got %s", key, luaL_typename(L, 3));
 
                 const std::string new_value = std::string(str, l);
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<rbxCallback>(value->value)) {
                 if (lua_isnil(L, 3))
                     goto SKIP;
@@ -1335,53 +1345,53 @@ int rbxInstance__newindex(lua_State* L) {
                 ;
             else if (std::holds_alternative<BrickColor*>(value->value)) {
                 const auto new_value = lua_checkbrickcolor(L, 3);
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<Color>(value->value)) {
             // TODO: (for all of these types) use to* not check* and error "Unable to assign property %skey. %stype expected, got %stypename3"
                 const auto new_value = lua_checkcolor(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (value->property->type_name == "ContentId")
                 goto STRING_CASE;
             else if (std::holds_alternative<EnumItem*>(value->value)) {
                 const char* expected_enum = std::get<EnumItem*>(value->value)->enum_name.c_str();
                 const auto new_value = lua_checkenumitem(L, 3, expected_enum);
-                setInstanceValue(instance, L, key, new_value);
+                setInstanceValue(instance, L, key, new_value, false, true);
             } else if (std::holds_alternative<EngineFont>(value->value)) {
                 const auto new_value = lua_checkfont(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<TweenInfo>(value->value)) {
                 const auto new_value = lua_checktweeninfo(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<ColorSequenceKeypoint>(value->value)) {
                 const auto new_value = lua_checkcolorsequencekeypoint(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<ColorSequence>(value->value)) {
                 const auto new_value = lua_checkcolorsequence(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<NumberRange>(value->value)) {
                 const auto new_value = lua_checknumberrange(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<NumberSequenceKeypoint>(value->value)) {
                 const auto new_value = lua_checknumbersequencekeypoint(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<NumberSequence>(value->value)) {
                 const auto new_value = lua_checknumbersequence(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<Rect>(value->value)) {
                 const auto new_value = lua_checkrect(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<UDim>(value->value)) {
                 const auto new_value = lua_checkudim(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<UDim2>(value->value)) {
                 const auto new_value = lua_checkudim2(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<Vector2>(value->value)) {
                 const auto new_value = lua_checkvector2(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else if (std::holds_alternative<Vector3>(value->value)) {
                 const auto new_value = lua_checkvector3(L, 3);
-                setInstanceValue(instance, L, key, *new_value);
+                setInstanceValue(instance, L, key, *new_value, false, true);
             } else {
                 lua_getglobal(L, "debug");
                 lua_rawgetfield(L, -1, "traceback");
@@ -1396,7 +1406,7 @@ int rbxInstance__newindex(lua_State* L) {
             break;
         case Instance: {
             std::shared_ptr<rbxInstance> new_value = lua_optinstance(L, 3);
-            setInstanceValue(instance, L, key, new_value);
+            setInstanceValue(instance, L, key, new_value, false, true);
             break;
         }
 

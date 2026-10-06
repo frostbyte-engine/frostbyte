@@ -104,13 +104,14 @@ endif()
 
 FetchContent_MakeAvailable(${BASE_DEPS})
 
-set(FOOLIB_SOURCES
+set(BASE_SOURCES
   src/base64.cpp
   src/common.cpp
   src/console.cpp
   src/environment.cpp
   src/fontloader.cpp
   src/frostbyte.cpp
+  src/frostbyteoption.cpp
   src/git.cpp
   src/http.cpp
   src/imageloader.cpp
@@ -148,6 +149,8 @@ set(FOOLIB_SOURCES
   src/engine/classes/userinputservice.cpp
   src/engine/classes/workspace.cpp
 
+  src/engine/classes/frostbyte/frostbyteoptions.cpp
+  src/engine/classes/frostbyte/frostbyteservice.cpp
   src/engine/classes/frostbyte/imguiservice.cpp
 
   src/engine/datatypes/brickcolor.cpp
@@ -189,7 +192,7 @@ set(FOOLIB_SOURCES
 )
 
 # frostbytecore_headless: just base dependencies
-add_library(frostbytecore_headless STATIC ${FOOLIB_SOURCES})
+add_library(frostbytecore_headless STATIC ${BASE_SOURCES})
 add_library(frostbytecore::headless ALIAS frostbytecore_headless)
 target_include_directories(frostbytecore_headless PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)
@@ -267,7 +270,11 @@ if(FROSTBYTE_BUILD_DESKTOP)
   target_link_libraries(imguifiledialog PUBLIC rlimgui) # for imgui headers
   target_compile_features(imguifiledialog PUBLIC cxx_std_17)
 
-  add_library(frostbytecore_desktop STATIC ${FOOLIB_SOURCES})
+  set(DESKTOP_SOURCES ${BASE_SOURCES})
+  # TODO: most of the desktop-specific code now just has nop implementations of things, but we should just have them be desktop-only sources
+  list(APPEND DESKTOP_SOURCES 
+    src/engine/classes/frostbyte/frostbytemainmenubar.cpp)
+  add_library(frostbytecore_desktop STATIC ${DESKTOP_SOURCES})
   add_library(frostbytecore::desktop ALIAS frostbytecore_desktop)
   target_include_directories(frostbytecore_desktop PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>)

@@ -8,8 +8,8 @@ float menu_bar_height = 0.f;
 Vector2 gui_inset_topleft{0.f, 58.f};
 Vector2 gui_inset_bottomright{0.f, 0.f};
 
-bool runservice_is_server = false;
-bool runservice_is_studio = false;
+FrostbyteOption runservice_is_server{false};
+FrostbyteOption runservice_is_studio{false};
 
 Color background_color{80, 80, 80, 204};
 bool show_fps = false;
@@ -148,6 +148,14 @@ void ImGui_ScriptLanguageCombo(ScriptLanguage** language) {
         if (!(*language)->enabled)
             *language = &ScriptLanguage::Luau;
     }
+}
+
+bool ImGui_MainMenuOption(const char* text, FrostbyteOption& option) {
+    bool tempbool = option;
+    bool changed = ImGui::MenuItem(text, nullptr, &tempbool);
+    if (changed)
+        option = tempbool;
+    return changed;
 }
 #endif
 
