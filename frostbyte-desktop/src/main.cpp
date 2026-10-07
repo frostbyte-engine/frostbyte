@@ -242,7 +242,7 @@ bool app(frostbyte::FrostbyteConfiguration& configuration) {
             if (ImGui::BeginMenu("Window")) {
                 ImGui::Text("Background Color");
                 ImGui::SameLine();
-                frostbyte::ImGui_Color4("##Background Color", frostbyte::background_color);
+                frostbyte::ImGui_Color3("##Background Color", frostbyte::background_color);
 
                 ImGui::MenuItem("Show FPS", nullptr, &frostbyte::show_fps);
                 ImGui::Separator();
@@ -678,7 +678,7 @@ int main(int argc, char** argv) {
 
     configuration.initializeWindow = []() {
         SetTraceLogLevel(LOG_WARNING);
-        int flags = FLAG_WINDOW_TRANSPARENT;
+        int flags = 0;
         #ifndef __EMSCRIPTEN__
         flags |= FLAG_WINDOW_RESIZABLE;
         #endif
