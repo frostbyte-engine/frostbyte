@@ -147,6 +147,7 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
         gitInit();
     }
 
+    // TODO: if it does exist then fetch + merge. in the case of conflict ignore local changes completely
     if (!std::filesystem::exists(FileSystem::assets_path)) {
         std::cout << "$HOME/assets doesn't exist. cloning assets repo..." << std::endl;
         auto err = gitShallowClone("https://github.com/frostbyte-engine/frostbyte-assets.git", FileSystem::assets_path.c_str());
@@ -159,8 +160,8 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
 
     std::string api_dump;
     {
-    std::string path = FileSystem::home_path;
-    path.append("assets/Full-API-Dump.json");
+    std::string path = FileSystem::assets_path;
+    path.append("Full-API-Dump.json");
     try {
         api_dump.assign(readFileToString(path.c_str()));
     } catch (std::exception& e) {
@@ -256,10 +257,10 @@ void Frostbyte::initialize(FrostbyteConfiguration configuration) {
     // TODO: look into why shader fails in wasm
     #ifndef __EMSCRIPTEN__
     {
-        std::string base_path = FileSystem::home_path;
-        base_path.append("assets/base.vs");
-        std::string rounded_path = FileSystem::home_path;
-        rounded_path.append("assets/rounded_rectangle.fs");
+        std::string base_path = FileSystem::assets_path;
+        base_path.append("shaders/base.vs");
+        std::string rounded_path = FileSystem::assets_path;
+        rounded_path.append("shaders/rounded_rectangle.fs");
 
         round_shader = LoadShader(base_path.c_str(), rounded_path.c_str());
 

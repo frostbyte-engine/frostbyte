@@ -33,8 +33,8 @@ void FontLoader::load() {
     std::string tmp_font_path;
 
     #define getFont(varname, path)                                                 \
-        tmp_font_path.assign(FileSystem::home_path);                               \
-        tmp_font_path.append("assets/" path);                                      \
+        tmp_font_path.assign(FileSystem::assets_path);                             \
+        tmp_font_path.append("fonts/" path);                                                \
         Font varname = LoadFontEx(tmp_font_path.c_str(), 256, NULL, 0);            \
         if (!IsFontValid(varname))                                                 \
             throw std::runtime_error("failed to load font " + std::string(path));
@@ -58,8 +58,8 @@ void FontLoader::load() {
     font_name_list.push_back("Plex");
     font_name_list.push_back("Monospace");
 
-    std::string directory = FileSystem::home_path;
-    directory.append("assets/enginefonts");
+    std::string directory = FileSystem::assets_path;
+    directory.append("rbxasset/fonts");
     for (const auto& file : std::filesystem::directory_iterator(directory)) {
         tmp_font_path.assign(file.path().string());
 
