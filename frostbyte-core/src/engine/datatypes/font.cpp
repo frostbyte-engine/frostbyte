@@ -23,19 +23,13 @@ Font* getFontFromEnum(lua_State* L, EnumItem* font_enum_item) {
     return entry->second;
 }
 
-int pushFont(lua_State* L, std::string family, EnumItem* weight, EnumItem* style) {
-    EngineFont* engine_font = static_cast<EngineFont*>(lua_newuserdatatagged(L, sizeof(EngineFont), userdata::Font));
-    new(engine_font) EngineFont;
-    engine_font->family = family;
-    engine_font->weight = weight;
-    engine_font->style = style;
-
-    std::string name = family;
+void generateFont(lua_State* L, EngineFont* engine_font) {
+    std::string name = engine_font->family;
     name.push_back('-');
-    name.append(weight->name);
-    if (style->value != 0) { // Normal
+    name.append(engine_font->weight->name);
+    if (engine_font->style->value != 0) { // Normal
         name.push_back(' ');
-        name.append(style->name);
+        name.append(engine_font->style->name);
     }
 
     // TODO: family should start with either rbxasset or rbxassetid. rbxasset should be something like rbxasset://fonts/families/%.json, which will be what Font.fromName does to name
@@ -55,6 +49,16 @@ int pushFont(lua_State* L, std::string family, EnumItem* weight, EnumItem* style
         font = entry->second;
 
     engine_font->font = font;
+}
+
+int pushFont(lua_State* L, std::string family, EnumItem* weight, EnumItem* style) {
+    EngineFont* engine_font = static_cast<EngineFont*>(lua_newuserdatatagged(L, sizeof(EngineFont), userdata::Font));
+    new(engine_font) EngineFont;
+    engine_font->family = family;
+    engine_font->weight = weight;
+    engine_font->style = style;
+
+    generateFont(L, engine_font);
 
     userdata::getClassMetatable(L, userdata::Font);
     lua_setmetatable(L, -2);
@@ -105,8 +109,7 @@ static int Font__index(lua_State* L) {
     else if (strequal(key, "Style"))
         pushEnumItem(L, engine_font->style);
     else if (strequal(key, "Bold"))
-        // TODO: Font Bold
-        lua_pushboolean(L, false);
+        lua_pushboolean(L, engine_font->weight->value == 700);
     else
         goto INVALID;
 
@@ -126,12 +129,13 @@ static int Font__newindex(lua_State* L) {
     else if (strequal(key, "Style"))
         engine_font->style = lua_checkenumitem(L, 3, "FontStyle");
     else if (strequal(key, "Bold"))
-        // TODO: Font Bold. note that .Bold = true will set Bold to true and, for example, change weight from Regular to Bold
-        luaL_error(L, "INTERNAL ERROR: FOND BOLD NEWINDEX");
+        engine_font->weight = luaL_checkboolean(L, 3)
+            ? &Enum::enum_map["FontWeight"].item_map["Bold"]
+            : &Enum::enum_map["FontWeight"].item_map["Regular"];
     else
         goto INVALID;
 
-    // FIXME: reset Font with same logic as pushFont (use a separate function )
+    generateFont(L, engine_font);
 
     return 0;
 
