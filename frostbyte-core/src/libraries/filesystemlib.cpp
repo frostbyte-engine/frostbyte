@@ -19,6 +19,15 @@ std::string FileSystem::assets_path;
 std::string FileSystem::bin_path;
 std::string FileSystem::temp_path;
 
+std::string readFileToString(const char* file_path) {
+    std::ifstream file(file_path, std::ios::binary);
+    if (!file)
+        throw std::runtime_error("failed to open file");
+    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+    return content;
+}
+
 static void checkPath(lua_State* L, const char* path) {
     if (!*path)
         luaL_error(L, "path cannot be empty");
@@ -88,8 +97,13 @@ static int fr_readfile(lua_State* L) {
     if (!std::filesystem::exists(path))
         luaL_error(L, "failed to open file '%s'", relative_path);
 
-    std::ifstream file(path, std::ios::binary);
-    std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+    std::string content;
+    try {
+        content = readFileToString(path.c_str());
+    }
+    catch (std::exception&) {
+        luaL_error(L, "failed to read file '%s'", relative_path);
+    }
 
     lua_pushlstring(L, content.c_str(), content.size());
     return 1;
@@ -105,8 +119,17 @@ static int fr_readfileasync(lua_State* L) {
         luaL_error(L, "failed to open file '%s'", relative_path.c_str());
 
     return TaskScheduler::yieldForWork(L, [relative_path, path] (Yield yield) {
-        std::ifstream file(path, std::ios::binary);
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+        std::string content;
+        try {
+            content = readFileToString(path.c_str());
+        }
+        catch (std::exception&) {
+            yield.finish([relative_path] (lua_State* L) {
+                lua_pushfstring(L, "failed to read file '%s'", relative_path.c_str());
+                return YIELD_ERROR;
+            });
+            return;
+       }
 
         yield.finish([content] (lua_State* L) {
             lua_pushlstring(L, content.c_str(), content.size());

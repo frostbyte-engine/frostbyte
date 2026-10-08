@@ -30,12 +30,12 @@ void FontLoader::load() {
 
     Font font_default = GetFontDefault();
 
-    std::string tmp_font_path;
+    std::string tmp_file_path;
 
     #define getFont(varname, path)                                                 \
-        tmp_font_path.assign(FileSystem::assets_path);                             \
-        tmp_font_path.append("fonts/" path);                                                \
-        Font varname = LoadFontEx(tmp_font_path.c_str(), 256, NULL, 0);            \
+        tmp_file_path.assign(FileSystem::assets_path);                             \
+        tmp_file_path.append("fonts/" path);                                       \
+        Font varname = LoadFontEx(tmp_file_path.c_str(), 256, NULL, 0);            \
         if (!IsFontValid(varname))                                                 \
             throw std::runtime_error("failed to load font " + std::string(path));
 
@@ -61,25 +61,74 @@ void FontLoader::load() {
     std::string directory = FileSystem::assets_path;
     directory.append("rbxasset/fonts");
     for (const auto& file : std::filesystem::directory_iterator(directory)) {
-        tmp_font_path.assign(file.path().string());
+        tmp_file_path.assign(file.path().string());
 
-        if (tmp_font_path.size() < 10)
+        if (tmp_file_path.size() < 10)
             continue;
 
-        std::string buffer = tmp_font_path.substr(tmp_font_path.size() - 3, 3);
-        if (buffer != "ttf" && buffer != "otf")
+        std::string extension = tmp_file_path.substr(tmp_file_path.size() - 3, 3);
+        if (extension != "ttf" && extension != "otf")
             continue;
 
-        Font* font = new Font(LoadFontEx(tmp_font_path.c_str(), 256, NULL, 0));
+        Font* font = new Font(LoadFontEx(tmp_file_path.c_str(), 256, NULL, 0));
 
-        char* name = tmp_font_path.data();
+        char* name = tmp_file_path.data();
         name += directory.size() + 1;
-        name[tmp_font_path.size() - directory.size() - 5] = 0; 
+        name[tmp_file_path.size() - directory.size() - 5] = 0; 
 
         engine_font_map[name] = font;
         font_list.push_back(font);
         font_name_list.push_back(name);
         font_count++;
+    }
+
+    directory = FileSystem::assets_path;
+    directory.append("rbxasset/fonts/families");
+    for (const auto& file : std::filesystem::directory_iterator(directory)) {
+        tmp_file_path.assign(file.path().string());
+
+        if (tmp_file_path.size() < 10)
+            continue;
+
+        std::string extension = tmp_file_path.substr(tmp_file_path.size() - 4, 4);
+        if (extension != "json")
+            continue;
+
+        std::string content = readFileToString(tmp_file_path.c_str());
+        json family_json = json::parse(content);
+
+        char* name = tmp_file_path.data();
+        name += directory.size() + 1;
+        name[tmp_file_path.size() - directory.size() - 6] = 0; 
+
+        for (auto& face : family_json["faces"]) {
+            std::string face_name = face["name"].template get<std::string>();
+            std::string id_string = face["assetId"].template get<std::string>();
+
+            if (id_string.substr(0, 10) != "rbxassetid")
+                continue;
+
+            tmp_file_path.assign(FileSystem::assets_path);
+            tmp_file_path.append("rbxassetid/").append(id_string.data() + 13);
+
+            Font* font = nullptr;
+            try {
+                std::string data = readFileToString(tmp_file_path.c_str());
+                const char* extension = getFontType(reinterpret_cast<unsigned char*>(data.data()), data.size());
+                font = new Font(LoadFontFromMemory(extension, reinterpret_cast<const unsigned char*>(data.data()), data.size(), 256, NULL, 0));
+            } catch(std::exception&) { }
+
+            if (!(font && IsFontValid(*font)))
+                continue;
+
+            face_name.insert(0, "-");
+            face_name.insert(0, name);
+
+            engine_font_map[face_name] = font;
+            font_list.push_back(font);
+            font_name_list.push_back(face_name);
+            font_count++;
+        }
     }
 }
 void FontLoader::unload() {

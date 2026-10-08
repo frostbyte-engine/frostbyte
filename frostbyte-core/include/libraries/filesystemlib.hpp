@@ -15,6 +15,8 @@ public:
     static std::string temp_path;
 };
 
+std::string readFileToString(const char* file_path);
+
 void open_filesystemlib(lua_State* L);
 
 }; // namespace frostbyte

@@ -31,10 +31,12 @@ int pushFont(lua_State* L, std::string family, EnumItem* weight, EnumItem* style
     engine_font->style = style;
 
     std::string name = family;
-    // if (weight->value != 400) { // Regular
-        name.push_back('-');
-        name.append(weight->name);
-    // }
+    name.push_back('-');
+    name.append(weight->name);
+    if (style->value != 0) { // Normal
+        name.push_back(' ');
+        name.append(style->name);
+    }
 
     // TODO: family should start with either rbxasset or rbxassetid. rbxasset should be something like rbxasset://fonts/families/%.json, which will be what Font.fromName does to name
     // in this case, we should read the json and get the entry of faces[weight] and do lookup from faces[weight]["assetId"]

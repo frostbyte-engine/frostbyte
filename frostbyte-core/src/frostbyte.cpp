@@ -73,23 +73,6 @@
 
 namespace frostbyte {
 
-std::string readFileToString(const char* file_path) {
-    std::ifstream file(file_path);
-    if (!file)
-        throw std::runtime_error("failed to open file");
-
-    std::string result;
-    std::string buffer;
-    while (std::getline(file, buffer))
-        result.append(buffer) += '\n';
-    if (result.size() > 0)
-        result.erase(result.size() - 1);
-
-    file.close();
-
-    return result;
-}
-
 #ifndef FROSTBYTE_HEADLESS
 Shader round_shader;
 #endif
